@@ -17,7 +17,7 @@ nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "te
 
 ```
 ## Registry objects
-Mainnet = 
+Mainnet = 0x580675c057dc922989f32f565bae595d943e482327829bbd01203c3355b3a060
 Testnet = 0x1fff6743212f9d1ba37064dbc1469b9c7454ffbd6ff9a79abcc189b450f5f551
 
 ## Motivation
