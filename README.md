@@ -145,7 +145,7 @@ Every little bit helps and is greatly appreciated! Thank you for your support!
 
 ## 🤝 Contributing
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make to **Reforges NFT Standard** are **greatly appreciated**!
+Any contributions you make to **Reforges NFT Standard** are **greatly appreciated**!
 
 We welcome contributions of all kinds:
 *   🐛 Reporting a bug
