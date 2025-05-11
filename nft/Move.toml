@@ -8,7 +8,7 @@ authors = [
 version = "1"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
+# Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
 # access_control = { git = "https://github.com/Reblixt/Sui-Access-Control.git", rev = "main" }
 # Kiosk = { git = "https://github.com/MystenLabs/apps.git", subdir = "kiosk", rev = "main" }
 # Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
@@ -27,7 +27,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 # Override = { local = "../conflicting/version", override = true }
 
 [addresses]
-nft = "0x0"
+nft = "0x69d39845f493bc246ecbd23878e6c237fa1339a797210e4bf159aec8ce7b2dfa"
 # Registry = "0x39086e28cb44555d40f3c03dd0dec8a62d14e2446c876fbef206c1b0efcd31db"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
