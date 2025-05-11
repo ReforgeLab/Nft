@@ -13,6 +13,9 @@ nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "ma
 
 This contract addresses the lack of a generally agreed NFT/collectible standard in the Sui blockchain ecosystem. It draws inspiration from and credits the Mystenlab team's deprecated collectible contract in their testnet package.
 
+## Example 
+There is a simple [example](./example/sources/example_nft.move) contract that demonstrates how to use the collectible standard. It is located in the [example](./example/sources/example_nft.move) folder. The example contract shows how to create a collection, mint collectibles and attributes.
+
 ## Architecture
 
 The collectible standard implements a flexible and extensible framework for NFTs with the following components:
@@ -140,6 +143,27 @@ If this NFT Standard has helped you or your project, please consider showing you
 
 Every little bit helps and is greatly appreciated! Thank you for your support!
 
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make to **Reforges NFT Standard** are **greatly appreciated**!
+
+We welcome contributions of all kinds:
+*   🐛 Reporting a bug
+*   💡 Suggesting an enhancement or new feature
+*   📝 Improving documentation
+*   💻 Submitting a pull request with code changes
+
+**Everyone is free and encouraged to open a Pull Request (PR)!**
+
+Please make sure to describe your PR clearly, detailing the changes made and any relevant context.
+
+If you're unsure about something or want to discuss a potential change, feel free to open an issue first.
+
+Thank you for helping make Reforges NFT Standard better!
+
 ## Acknowledgments
 
 Special thanks to the Mysten Labs team for their pioneering work on the original collectible module in their testnet repository. While that implementation has been deprecated, it provided valuable insights and inspiration for the architecture of this standard. This project builds upon their foundational concepts while introducing new features and improvements to create a more comprehensive collectible standard for the Sui ecosystem.
+
+## Todos
+- [ ] Add Walrus storage options
