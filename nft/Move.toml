@@ -11,28 +11,16 @@ version = "1"
 # Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
 # access_control = { git = "https://github.com/Reblixt/Sui-Access-Control.git", rev = "main" }
 # Kiosk = { git = "https://github.com/MystenLabs/apps.git", subdir = "kiosk", rev = "main" }
-# Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
 # access_control = { git = "https://github.com/Reblixt/Sui-Access-Control.git", rev = "testnet" }
 # Kiosk = { git = "https://github.com/MystenLabs/apps.git", subdir = "kiosk", rev = "testnet" }
 
-# For remote import, use the `{ git = "...", subdir = "...", rev = "..." }`.
-# Revision can be a branch, a tag, and a commit hash.
-# MyRemotePackage = { git = "https://some.remote/host.git", subdir = "remote/path", rev = "main" }
-
-# For local dependencies use `local = path`. Path is relative to the package root
-# Local = { local = "../path/to" }
-
-# To resolve a version conflict and force a specific version for dependency
-# override use `override = true`
-# Override = { local = "../conflicting/version", override = true }
 
 [addresses]
-nft = "0x69d39845f493bc246ecbd23878e6c237fa1339a797210e4bf159aec8ce7b2dfa"
-# Registry = "0x424937056554539630fbd5d859be3faa8161dda9222f453cff02c8b1eec5f86e"
+nft = "0x2a2ede7a4600c8e6870344dbf7d1a874a35a34a0cda06c0791a7db73b606489f"
+# Registry = "0x1fff6743212f9d1ba37064dbc1469b9c7454ffbd6ff9a79abcc189b450f5f551"
+# UpgradeCap = "0xb7e2c11ce850e117a7738af78c65c745fc532382e54d59043155180d363f8783"
 
-# Named addresses will be accessible in Move as `@name`. They're also exported:
-# for example, `std = "0x1"` is exported by the Standard Library.
-# alice = "0xA11CE"
 
 [dev-dependencies]
 # The dev-dependencies section allows overriding dependencies for `--test` and
