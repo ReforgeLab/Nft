@@ -7,7 +7,7 @@ It aims to provide a similar experience as when to create a Coin/Token in Sui, b
 ## How to Install
 Add this in your Move.toml file under [dependencies]:
 ```toml
-nft = { git = "https://github.com/Reblixt/sui-move.git", subdir = "nft", rev = "main" }
+nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "main" }
 ```
 ## Motivation
 
