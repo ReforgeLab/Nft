@@ -2,6 +2,8 @@
 
 A comprehensive NFT/collectible standard implementation for the Sui blockchain.
 
+It aims to provide a similar experience as when to create a Coin/Token in Sui, but for NFTs. The goal is to create a standard that is easy to use and understand, while also being flexible enough to accommodate a wide range of use cases.
+
 ## How to Install
 Add this in your Move.toml file under [dependencies]:
 ```toml
@@ -126,6 +128,17 @@ The attribute system enables dynamic composition of collectible traits. Attribut
 
 The `CollectionCap<T>` provides ownership privileges for collection management, and can be revoked to make a collection immutable.
 
+## ❤️ Support & Appreciation
+
+Thank you for using **Reforges NFT Standard**! 
+
+If this NFT Standard has helped you or your project, please consider showing your appreciation. Your support helps me dedicate more time to improving the standard, adding new features, and keeping it up-to-date with the evolving Sui ecosystem. Think of it as **buying me a coffee** to fuel future development and more contributions to the community! ☕
+
+**Sui Wallet for Donations:**
+*(Accepts SUI and other Sui-based tokens)*
+0xb27740c2f79229fb2bfdbf31e0511fdbfbefe72b8ca9f3b81b0b2f3164103d2b
+
+Every little bit helps and is greatly appreciated! Thank you for your support!
 
 ## Acknowledgments
 
