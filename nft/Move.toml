@@ -28,7 +28,7 @@ version = "1"
 
 [addresses]
 nft = "0x69d39845f493bc246ecbd23878e6c237fa1339a797210e4bf159aec8ce7b2dfa"
-# Registry = "0x39086e28cb44555d40f3c03dd0dec8a62d14e2446c876fbef206c1b0efcd31db"
+# Registry = "0x424937056554539630fbd5d859be3faa8161dda9222f453cff02c8b1eec5f86e"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.

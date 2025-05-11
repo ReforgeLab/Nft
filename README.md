@@ -5,10 +5,21 @@ A comprehensive NFT/collectible standard implementation for the Sui blockchain.
 It aims to provide a similar experience as when to create a Coin/Token in Sui, but for NFTs. The goal is to create a standard that is easy to use and understand, while also being flexible enough to accommodate a wide range of use cases.
 
 ## How to Install
-Add this in your Move.toml file under [dependencies]:
+Add this in your Move.toml file under [dependencies]: 
+### Mainnet
 ```toml
 nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "main" }
 ```
+
+### Testnet 
+```toml
+nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "testnet" }
+
+```
+## Registry objects
+Mainnet = 0x424937056554539630fbd5d859be3faa8161dda9222f453cff02c8b1eec5f86e
+Testnet = 
+
 ## Motivation
 
 This contract addresses the lack of a generally agreed NFT/collectible standard in the Sui blockchain ecosystem. It draws inspiration from and credits the Mystenlab team's deprecated collectible contract in their testnet package.
