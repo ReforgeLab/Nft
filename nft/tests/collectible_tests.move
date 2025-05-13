@@ -22,7 +22,7 @@ module nft::collectible_test {
         animal: bool,
     }
 
-    fun setup(dynamic: bool): (Scenario, Registry, Collection<Meta>, CollectionCap<Meta>) {
+    fun setup(dynamic: bool): (Scenario, Registry, CollectionCap<Meta>) {
         let mut scenario = scenario::begin(Alice);
         registry::test_init(scenario.ctx());
         scenario.next_tx(Alice);
@@ -37,14 +37,16 @@ module nft::collectible_test {
 
         let ticket = scenario.take_from_sender<CollectionTicket<Meta>>();
 
-        let (collection, coll_cap) = setup_collection(&mut scenario, &registry, dynamic, ticket);
+        let coll_cap = setup_collection(&mut scenario, &registry, dynamic, ticket);
+        scenario.next_tx(Alice);
 
-        (scenario, registry, collection, coll_cap)
+        (scenario, registry, coll_cap)
     }
 
     #[test]
     fun test_collection_getter_functions() {
-        let (scen, registry, collection, coll_cap) = setup(false);
+        let (scen, registry, coll_cap) = setup(false);
+        let collection = scen.take_shared<Collection<Meta>>();
 
         let (burnable, burned_amount) = collection.get_burned();
         // bools and numbers
@@ -76,8 +78,9 @@ module nft::collectible_test {
 
     #[test]
     fun test_create_attribute() {
-        let (mut scen, registry, mut collection, coll_cap) = setup(false);
+        let (mut scen, registry, coll_cap) = setup(false);
 
+        let mut collection = scen.take_shared<Collection<Meta>>();
         let attribute = setup_attribute(&mut scen, &mut collection, &coll_cap);
         let image_url = attribute.get_attribute_image_url();
         let (key, value) = attribute.get_attribute_data();
@@ -95,7 +98,8 @@ module nft::collectible_test {
 
     #[test]
     fun test_create_collectible() {
-        let (mut scen, registry, mut collection, coll_cap) = setup(false);
+        let (mut scen, registry, coll_cap) = setup(false);
+        let mut collection = scen.take_shared<Collection<Meta>>();
 
         let attribute = setup_attribute(&mut scen, &mut collection, &coll_cap);
         // std::debug::print(&attribute);
@@ -136,7 +140,8 @@ module nft::collectible_test {
 
     #[test]
     fun test_nft_with_mutiple_attributes() {
-        let (mut scen, registry, mut collection, coll_cap) = setup(false);
+        let (mut scen, registry, coll_cap) = setup(false);
+        let mut collection = scen.take_shared<Collection<Meta>>();
 
         let attributes = setup_multiple_attributes(&mut scen, &mut collection, &coll_cap);
 
@@ -173,7 +178,8 @@ module nft::collectible_test {
 
     #[test]
     fun test_swap_attribute() {
-        let (mut scen, registry, mut collection, coll_cap) = setup(true);
+        let (mut scen, registry, coll_cap) = setup(true);
+        let mut collection = scen.take_shared<Collection<Meta>>();
 
         let attributes = setup_multiple_attributes(&mut scen, &mut collection, &coll_cap);
 
@@ -231,7 +237,7 @@ module nft::collectible_test {
         registry: &Registry,
         dynamic: bool,
         ticket: CollectionTicket<Meta>,
-    ): (Collection<Meta>, CollectionCap<Meta>) {
+    ): CollectionCap<Meta> {
         let banner_url = b"https://example.com/banner".to_string();
         let fields = vector[
             b"Background".to_string(),
@@ -240,7 +246,7 @@ module nft::collectible_test {
             b"Jacket".to_string(),
         ];
 
-        let (collection, coll_cap) = ticket.create_collection(
+        let coll_cap = ticket.create_collection(
             registry,
             banner_url,
             fields,
@@ -251,7 +257,7 @@ module nft::collectible_test {
             scenario.ctx(),
         );
 
-        (collection, coll_cap)
+        coll_cap
     }
 
     fun setup_static_collectible(
