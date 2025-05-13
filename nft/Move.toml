@@ -8,18 +8,18 @@ authors = [
 version = "1"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
+# Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
 # access_control = { git = "https://github.com/Reblixt/Sui-Access-Control.git", rev = "main" }
 # Kiosk = { git = "https://github.com/MystenLabs/apps.git", subdir = "kiosk", rev = "main" }
-# Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
 # access_control = { git = "https://github.com/Reblixt/Sui-Access-Control.git", rev = "testnet" }
 # Kiosk = { git = "https://github.com/MystenLabs/apps.git", subdir = "kiosk", rev = "testnet" }
 
 
 [addresses]
-nft = "0x3ae7744f83b572717ebb2e720da18cda40fadc9e482e211a54d438c9a3061415"
-# Registry = "0x580675c057dc922989f32f565bae595d943e482327829bbd01203c3355b3a060"
-# UpgradeCap = "0x77639a011968925c531db114d6e139cb29b9605a088436fade078fc8aeea6bea"
+nft = "0x2a2ede7a4600c8e6870344dbf7d1a874a35a34a0cda06c0791a7db73b606489f"
+# Registry = "0x1fff6743212f9d1ba37064dbc1469b9c7454ffbd6ff9a79abcc189b450f5f551"
+# UpgradeCap = "0xb7e2c11ce850e117a7738af78c65c745fc532382e54d59043155180d363f8783"
 
 
 [dev-dependencies]

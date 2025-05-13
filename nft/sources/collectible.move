@@ -158,7 +158,7 @@ module nft::collectible {
         burnable: bool,
         meta_borrowable: bool,
         ctx: &mut TxContext,
-    ): (Collection<T>, CollectionCap<T>) {
+    ): CollectionCap<T> {
         let CollectionTicket { id, publisher, max_supply } = ticket;
         object::delete(id);
 
@@ -224,7 +224,8 @@ module nft::collectible {
             dynamic,
             burnable,
         });
-        (collection, cap)
+        transfer::share_object(collection);
+        cap
     }
 
     // === Minting ===

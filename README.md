@@ -7,15 +7,15 @@ It aims to provide a similar experience as when to create a Coin/Token in Sui, b
 ## How to Install
 Add this in your Move.toml file under [dependencies]: 
 <!-- ### Mainnet -->
-<!-- ```toml -->
-<!-- nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "main" } -->
-<!-- ``` -->
-
-### Testnet 
 ```toml
-nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "testnet" }
-
+nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "main" }
 ```
+
+<!-- ### Testnet  -->
+<!-- ```toml -->
+<!-- nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "testnet" } -->
+<!---->
+<!-- ``` -->
 ## Registry objects
 <!-- Mainnet = 0x580675c057dc922989f32f565bae595d943e482327829bbd01203c3355b3a060 -->
 Testnet = 0x1fff6743212f9d1ba37064dbc1469b9c7454ffbd6ff9a79abcc189b450f5f551
@@ -178,7 +178,8 @@ Special thanks to the Mysten Labs team for their pioneering work on the original
 
 ## Todos
 - [ ] Add Walrus storage options
-    - [ ] Create a transfer policy for Walrus, each time a transfer is made, a small fee is paid towards the Walrus storage
+    - [ ] Research if i could create a transfer policy for Walrus, each time a transfer is made, a small fee is paid towards the Walrus storage
 - [ ] Create more extensive examples guides 
 - [ ] Add more robust tests
-- [ ] Add a way to update image_url if the collection in dynamic.
+- [ ] Add a way to update image_url if the collection is dynamic.
+<!-- - [ ] Research on if/should integrate Atomas AI into the standard.  -->
