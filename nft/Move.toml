@@ -17,7 +17,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 
 
 [addresses]
-nft = "0x2a2ede7a4600c8e6870344dbf7d1a874a35a34a0cda06c0791a7db73b606489f"
+nft = "0x0"
 # Registry = "0x1fff6743212f9d1ba37064dbc1469b9c7454ffbd6ff9a79abcc189b450f5f551"
 # UpgradeCap = "0xb7e2c11ce850e117a7738af78c65c745fc532382e54d59043155180d363f8783"
 
