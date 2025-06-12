@@ -186,4 +186,7 @@ Special thanks to the Mysten Labs team for their pioneering work on the original
 - [ ] Create more extensive example guides
 - [ ] Add more robust tests
 - [ ] Refactor codebase for better readability and maintainability
+
+## Longterm Goals
+- Creating a rendering backend server for images that is open for anyone to host.
 <!-- - [ ] Research on if/should integrate Atomas AI into the standard.  -->
