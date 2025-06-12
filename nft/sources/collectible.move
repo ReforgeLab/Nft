@@ -177,7 +177,7 @@ module nft::collectible {
         );
 
         display_collectible.add(b"name".to_string(), b"{name}".to_string());
-        display_collectible.add(b"image_url".to_string(), b"image_url".to_string());
+        display_collectible.add(b"image_url".to_string(), b"{image_url}".to_string());
         display_collectible.add(b"description".to_string(), b"{description}".to_string());
         display_collectible.add(b"attributes".to_string(), b"{attributes}".to_string());
         display_collectible.add(b"equipped".to_string(), b"{equipped}".to_string());

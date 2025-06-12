@@ -5,7 +5,7 @@ A comprehensive NFT/collectible standard implementation for the Sui blockchain.
 It aims to provide a similar experience as when to create a Coin/Token in Sui, but for NFTs. The goal is to create a standard that is easy to use and understand, while also being flexible enough to accommodate a wide range of use cases.
 
 ## How to Install
-Add this in your Move.toml file under [dependencies]: 
+Add this in your Move.toml file under [dependencies]:
 <!-- ### Mainnet -->
 ```toml
 nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "main" }
@@ -24,7 +24,7 @@ Testnet = 0x1fff6743212f9d1ba37064dbc1469b9c7454ffbd6ff9a79abcc189b450f5f551
 
 This contract addresses the lack of a generally agreed NFT/collectible standard in the Sui blockchain ecosystem. It draws inspiration from and credits the Mystenlab team's deprecated collectible contract in their testnet package.
 
-## Example 
+## Example
 There is a simple [example](./example/sources/example_nft.move) contract that demonstrates how to use the collectible standard. It is located in the [example](./example/sources/example_nft.move) folder. The example contract shows how to create a collection, mint collectibles and attributes.
 
 ## Architecture
@@ -144,7 +144,7 @@ The `CollectionCap<T>` provides ownership privileges for collection management, 
 
 ## ❤️ Support & Appreciation
 
-Thank you for using **Reforges NFT Standard**! 
+Thank you for using **Reforges NFT Standard**!
 
 If this NFT Standard has helped you or your project, please consider showing your appreciation. Your support helps me dedicate more time to improving the standard, adding new features, and keeping it up-to-date with the evolving Sui ecosystem. Think of it as **buying me a coffee** to fuel future development and more contributions to the community! ☕
 
@@ -166,6 +166,8 @@ We welcome contributions of all kinds:
 
 **Everyone is free and encouraged to open a Pull Request (PR)!**
 
+Before creating a Pull Request, please fork the project and create your PR from the forked repository.
+
 Please make sure to describe your PR clearly, detailing the changes made and any relevant context.
 
 If you're unsure about something or want to discuss a potential change, feel free to open an issue first.
@@ -178,8 +180,9 @@ Special thanks to the Mysten Labs team for their pioneering work on the original
 
 ## Todos
 - [ ] Add Walrus storage options
-    - [ ] Research if i could create a transfer policy for Walrus, each time a transfer is made, a small fee is paid towards the Walrus storage
-- [ ] Create more extensive examples guides 
+    - [ ] Research if I could create a transfer policy for Walrus, where a small fee for each transfer is paid towards Walrus storage
+- [ ] Create a transfer policy rule for when to update the image_url when the collection is dynamic.
+- [ ] Add a calculate rarity score function (getter)
+- [ ] Create more extensive example guides
 - [ ] Add more robust tests
-- [ ] Add a way to update image_url if the collection is dynamic.
 <!-- - [ ] Research on if/should integrate Atomas AI into the standard.  -->
