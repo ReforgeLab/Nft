@@ -5,6 +5,7 @@ A comprehensive NFT/collectible standard implementation for the Sui blockchain.
 It aims to provide a similar experience as when to create a Coin/Token in Sui, but for NFTs. The goal is to create a standard that is easy to use and understand, while also being flexible enough to accommodate a wide range of use cases.
 
 ## How to Install
+This is under development so it exists only on testnet for now
 Add this in your Move.toml file under [dependencies]:
 <!-- ### Mainnet -->
 ```toml
@@ -17,8 +18,7 @@ nft = { git = "https://github.com/ReforgeLab/Nft.git", subdir = "nft", rev = "ma
 <!---->
 <!-- ``` -->
 ## Registry objects
-<!-- Mainnet = 0x580675c057dc922989f32f565bae595d943e482327829bbd01203c3355b3a060 -->
-Testnet = 0x1fff6743212f9d1ba37064dbc1469b9c7454ffbd6ff9a79abcc189b450f5f551
+Testnet = 0xba427918c9c0336847df003b8b8ec3c6e5f3b4c52d2b4ea5e2abec932556c520
 
 ## Motivation
 
