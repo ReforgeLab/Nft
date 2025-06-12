@@ -185,4 +185,5 @@ Special thanks to the Mysten Labs team for their pioneering work on the original
 - [ ] Add a calculate rarity score function (getter)
 - [ ] Create more extensive example guides
 - [ ] Add more robust tests
+- [ ] Refactor codebase for better readability and maintainability
 <!-- - [ ] Research on if/should integrate Atomas AI into the standard.  -->

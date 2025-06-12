@@ -17,6 +17,12 @@ module nft::collectible {
         collectible_id: ID,
     }
 
+    public struct RenderNode {
+        attribute_id: ID,
+        nft_id: ID,
+        old_nft_image_url: String,
+    }
+
     public struct Config has copy, store {
         // Max mintable collectibles
         max_supply: Option<u32>,
@@ -50,6 +56,11 @@ module nft::collectible {
     }
 
     public struct CollectionCap<phantom T: store> has key, store {
+        id: UID,
+        collection: ID,
+    }
+
+    public struct RenderCap<phantom T: store> has key, store {
         id: UID,
         collection: ID,
     }
@@ -158,7 +169,7 @@ module nft::collectible {
         burnable: bool,
         meta_borrowable: bool,
         ctx: &mut TxContext,
-    ): CollectionCap<T> {
+    ): (CollectionCap<T>, Option<RenderCap<T>>) {
         let CollectionTicket { id, publisher, max_supply } = ticket;
         object::delete(id);
 
@@ -208,14 +219,15 @@ module nft::collectible {
             creator,
             config,
         };
+        let collection_id = collection.id.to_inner();
 
         let cap = CollectionCap<T> {
             id: object::new(ctx),
-            collection: object::id(&collection),
+            collection: collection_id,
         };
 
         emit(CollectionCreated {
-            collection_id: object::id(&collection),
+            collection_id,
             collection_cap_id: object::id(&cap),
             max_supply,
             creator: ctx.sender(),
@@ -225,7 +237,17 @@ module nft::collectible {
             burnable,
         });
         transfer::share_object(collection);
-        cap
+        if (dynamic) {
+            (
+                cap,
+                option::some(RenderCap<T> {
+                    id: object::new(ctx),
+                    collection: collection_id,
+                }),
+            )
+        } else {
+            (cap, option::none())
+        }
     }
 
     // === Minting ===
@@ -311,9 +333,15 @@ module nft::collectible {
         collection: &mut Collection<T>,
         attribute: Attribute<T>,
         _: &mut TxContext,
-    ) {
+    ): RenderNode {
         collection.assert_dynamic();
+        let node = RenderNode {
+            attribute_id: object::id(&attribute),
+            nft_id: collectible.id.to_inner(),
+            old_nft_image_url: collectible.image_url,
+        };
         collectible.internal_join_attribute<T>(collection, attribute);
+        node
     }
 
     public fun split_attribute<T: store>(
@@ -321,9 +349,32 @@ module nft::collectible {
         collection: &mut Collection<T>,
         key: String,
         _: &mut TxContext,
-    ): Attribute<T> {
+    ): (RenderNode, Attribute<T>) {
         collection.assert_dynamic();
-        collectible.internal_split_attribute<T>(collection, key)
+        let attribute = collectible.internal_split_attribute<T>(collection, key);
+        let node = RenderNode {
+            attribute_id: object::id(&attribute),
+            nft_id: collectible.id.to_inner(),
+            old_nft_image_url: collectible.image_url,
+        };
+        (node, attribute)
+    }
+
+    public fun update_image<T: store>(
+        collectible: &mut Collectible<T>,
+        collection: &mut Collection<T>,
+        attribute_id: ID,
+        new_image_url: String,
+        render_node: RenderNode,
+        _: &mut TxContext,
+    ) {
+        collection.assert_dynamic();
+        let RenderNode { attribute_id: attr_id, nft_id, old_nft_image_url } = render_node;
+        assert!(attribute_id == attr_id);
+        assert!(nft_id == collectible.id.to_inner());
+        assert!(old_nft_image_url == collectible.image_url && new_image_url != old_nft_image_url);
+
+        collectible.image_url = new_image_url;
     }
 
     public fun create_attribute_hash<T: store>(
