@@ -7,7 +7,7 @@ authors = [
 ]
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
+# Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
 nft = { local = "../nft"}
 
 # For remote import, use the `{ git = "...", subdir = "...", rev = "..." }`.

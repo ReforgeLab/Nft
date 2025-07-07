@@ -207,7 +207,7 @@ module nft::collectible_test {
         let new_attribute_id = object::id(&new_attribute);
 
         // swap attributes
-        let old_background = collectible.split_attribute(
+        let (old_node, old_background) = collectible.split_attribute(
             &mut collection,
             b"Background".to_string(),
             scen.ctx(),
@@ -216,7 +216,8 @@ module nft::collectible_test {
         assert_eq(old_key, b"Background".to_string());
         assert_eq(old_value, b"red".to_string());
 
-        collectible.join_attribute(&mut collection, new_attribute, scen.ctx());
+        let render_node = collectible.join_attribute(&mut collection, new_attribute, scen.ctx());
+        destroy(render_node);
 
         let vecmap_attribute: VecMap<String, ID> = collectible.get_equipped_map();
 
@@ -225,6 +226,7 @@ module nft::collectible_test {
 
         destroy(collectible);
         destroy(old_background);
+        destroy(old_node);
         destroy(registry);
         destroy(coll_cap);
         destroy(collection);
@@ -246,7 +248,7 @@ module nft::collectible_test {
             b"Jacket".to_string(),
         ];
 
-        let coll_cap = ticket.create_collection(
+        let (coll_cap, render_cap_opt) = ticket.create_collection(
             registry,
             banner_url,
             fields,
@@ -257,6 +259,12 @@ module nft::collectible_test {
             scenario.ctx(),
         );
 
+        if (render_cap_opt.is_some()) {
+            let render_cap = render_cap_opt.destroy_some();
+            destroy(render_cap);
+        } else {
+            option::destroy_none(render_cap_opt);
+        };
         coll_cap
     }
 

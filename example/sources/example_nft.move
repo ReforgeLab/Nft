@@ -1,6 +1,8 @@
 module example::nft_example {
     use nft::{collectible::{Self, CollectionCap, CollectionTicket, Collection}, registry::Registry};
     use std::{option::{none, some}, string::String};
+    use sui::object::UID;
+    use sui::test_utils::destroy;
 
     public struct NFT_EXAMPLE has drop {}
 
@@ -20,10 +22,7 @@ module example::nft_example {
         registry: &Registry,
         ctx: &mut TxContext,
     ) {
-        let (mut collection, cap): (
-            Collection<Nft<NFT_EXAMPLE>>,
-            CollectionCap<Nft<NFT_EXAMPLE>>,
-        ) = ticket.create_collection(
+        let (cap, render_cap_opt) = ticket.create_collection(
             registry,
             b"https://www.banner.com".to_string(),
             vector[b"Background".to_string(), b"Clothing".to_string()],
@@ -34,14 +33,16 @@ module example::nft_example {
             ctx,
         );
 
-        let (mut display, borrow) = collection.borrow_mut_display_collectible(&cap);
+        // Destroy the render cap option if it exists
+        if (render_cap_opt.is_some()) {
+            let render_cap = render_cap_opt.destroy_some();
+            destroy(render_cap);
+        } else {
+            option::destroy_none(render_cap_opt);
+        };
 
-        display.add(b"project_url".to_string(), b"www.project.com".to_string());
-        display.update_version();
-
-        collection.return_display_collectible(display, borrow);
-
-        transfer::public_transfer(collection, ctx.sender());
+        // The collection is automatically shared by create_collection
+        // We only need to transfer the cap to the sender
         transfer::public_transfer(cap, ctx.sender());
     }
 
