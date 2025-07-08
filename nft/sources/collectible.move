@@ -610,7 +610,7 @@ module nft::collectible {
     }
 
     public fun is_flexible_schema<T: store>(collection: &Collection<T>): bool {
-        collection.attribute_fields.is_empty()
+        supports_dynamic_attributes(collection)
     }
 
     // === Collectible ===
