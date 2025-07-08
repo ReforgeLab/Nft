@@ -7,8 +7,8 @@ module nft::attributes {
     public struct Attribute<T> has key, store {
         id: UID,
         image_url: Option<String>,
-        key: String,
-        value: String,
+        key: String, // Background, Cloth, etc.
+        value: String, // red-sky, jacket, etc.
         meta: Option<T>,
         meta_borrowable: bool,
     }
@@ -17,6 +17,7 @@ module nft::attributes {
         attribute_id: ID,
     }
 
+    // ============== Events ==============
     public struct AttributeMinted has copy, drop {
         collection_id: ID,
         attribute_id: ID,
