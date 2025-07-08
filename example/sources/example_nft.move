@@ -84,8 +84,6 @@ module example::nft_example {
             option::destroy_none(render_cap_opt);
         };
 
-        // The collection is automatically shared by create_collection
-        // We only need to transfer the cap to the sender
         transfer::public_transfer(cap, ctx.sender());
     }
 
