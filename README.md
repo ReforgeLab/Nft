@@ -39,10 +39,13 @@ The collectible standard implements a flexible and extensible framework for NFTs
 ## Key Features
 
 - **Dynamic Attributes**: Join and split attributes from collectibles
+- **Flexible Metadata Architecture**: Generic type system where `T` can be any metadata type
+- **Dynamic Attribute Names**: Collections with empty `attribute_fields` support any attribute names without pre-registration
+- **Multiple Metadata Types**: Different collections can use different metadata structures (`PixelArtMeta`, `CollectionMeta`, etc.)
 - **Flexible Supply**: Optional maximum supply limits
 - **Transfer Policy Integration**: Built-in marketplace compliance
 - **Standardize Display**: Customizable display objects for collectibles
-- **Custom Metadata**: Support for project-specific metadata types
+- **Schema Flexibility**: Choose between strict (predefined attributes) or flexible (any attributes) schemas
 - **Attribute Validation**: Verify attribute combinations through hashing
 - **Comprehensive Events**: Full event system for off-chain indexing
 
@@ -53,6 +56,53 @@ The collectible standard implements a flexible and extensible framework for NFTs
 3. Create a collection with the ticket using `create_collection<T>`
 4. Mint collectibles and attributes using `mint<T>` and `mint_attribute<T>`
 5. Manage attributes with `join_attribute<T>` and `split_attribute<T>`
+
+### Usage Examples
+
+#### Flexible Schema (Dynamic Attributes)
+```move
+// Create collection with empty attribute_fields for any attributes
+let (collection, cap) = ticket.create_collection(
+    registry,
+    banner_url,
+    vector[], // Empty = flexible schema
+    creator,
+    false, true, false, ctx
+);
+
+// Mint with any attribute names
+let nft = collection.mint(
+    cap,
+    some(b"My NFT".to_string()),
+    image_url,
+    some(b"Custom description".to_string()),
+    none(), // No predefined attributes needed
+    some(pixel_art_meta), // Custom metadata
+    ctx
+);
+```
+
+#### Strict Schema (Predefined Attributes)
+```move
+// Create collection with predefined attributes
+let (collection, cap) = ticket.create_collection(
+    registry,
+    banner_url,
+    vector[b"Hat".to_string(), b"Background".to_string()], // Strict schema
+    creator,
+    false, true, false, ctx
+);
+
+// Mint with predefined attribute names only
+let attribute = collection.mint_attribute(
+    cap,
+    some(image_url),
+    b"Hat".to_string(), // Must match predefined fields
+    b"Cowboy Hat".to_string(),
+    some(attribute_meta),
+    ctx
+);
+```
 
 ## Core Components
 
@@ -131,12 +181,59 @@ The contract emits comprehensive events for all major operations including:
 - Collectible destruction
 - Metadata edits
 
-## Attribute System
+## Flexible Metadata & Attribute System
 
-The attribute system enables dynamic composition of collectible traits. Attributes:
-- Must be defined in the collection's allowed fields
-- Can be attached and detached if the collection is dynamic
-- Can be validated using hashing for proof mechanisms
+The framework supports both strict and flexible attribute schemas:
+
+### Schema Types
+
+**Strict Schema**: Collections with predefined `attribute_fields`
+- Attributes must be defined in the collection's allowed fields
+- Enforces consistent attribute names across the collection
+- Traditional approach for standardized collections
+
+**Flexible Schema**: Collections with empty `attribute_fields`
+- Supports any attribute names without pre-registration
+- Perfect for user-generated content (e.g., "Dragon Wings", "Fire Sword")
+- Ideal for pixel art editors and creative platforms
+
+### Metadata Architecture
+
+The generic type system allows different metadata types:
+
+```move
+// Traditional NFT metadata
+public struct Nft<phantom T> has key, store {
+    id: UID,
+    name: String,
+    // ... other fields
+}
+
+// Pixel art specific metadata
+public struct PixelArtMeta has store, drop {
+    attribute_names: vector<String>,
+    attribute_values: vector<String>,
+    creator: address,
+    editing_tool: String,
+    layer_count: u64,
+}
+
+// Collection-specific metadata
+public struct CollectionMeta has store, drop {
+    rarity_tier: String,
+    rarity_score: u64,
+    generation_batch: u64,
+    trait_rules_applied: vector<String>,
+}
+```
+
+### Dynamic Attribute Features
+
+Attributes can be:
+- Attached and detached if the collection is dynamic
+- Created with custom metadata types
+- Validated using hashing for proof mechanisms
+- Named dynamically in flexible schema collections
 
 ## Access Control
 
