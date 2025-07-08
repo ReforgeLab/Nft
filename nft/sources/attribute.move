@@ -103,14 +103,4 @@ module nft::attributes {
         });
     }
 
-
-    public fun validate_dynamic_attribute(key: &String, value: &String): bool {
-        let _ = key;
-        let _ = value;
-        true
-    }
-
-    public fun get_dynamic_attribute_data<T: store>(attribute: &Attribute<T>): (String, String) {
-        (attribute.key, attribute.value)
-    }
 }
