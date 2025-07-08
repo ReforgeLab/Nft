@@ -2,10 +2,11 @@
 
 [move]
 version = 3
-manifest_digest = "E83A55E71AA3E1116B4FA6D0D61021B97A07E415353301624AFFEA72C2D4F55B"
-deps_digest = "F8BBB0CCB2491CA29A3DF03D6F92277A4F3574266507ACD77214D37ECA3F3082"
+manifest_digest = "D18BDD294447D43478333BED3E255A1DB8CB0110149568ABEB9905A706B6FCB1"
+deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 dependencies = [
   { id = "Sui", name = "Sui" },
+  { id = "Walrus", name = "Walrus" },
 ]
 
 [[move.package]]
@@ -20,8 +21,25 @@ dependencies = [
   { id = "MoveStdlib", name = "MoveStdlib" },
 ]
 
+[[move.package]]
+id = "WAL"
+source = { git = "https://github.com/MystenLabs/walrus-docs.git", rev = "main", subdir = "contracts/wal" }
+
+dependencies = [
+  { id = "Sui", name = "Sui" },
+]
+
+[[move.package]]
+id = "Walrus"
+source = { git = "https://github.com/MystenLabs/walrus-docs.git", rev = "main", subdir = "contracts/walrus" }
+
+dependencies = [
+  { id = "Sui", name = "Sui" },
+  { id = "WAL", name = "WAL" },
+]
+
 [move.toolchain-version]
-compiler-version = "1.48.2"
+compiler-version = "1.50.1"
 edition = "2024.beta"
 flavor = "sui"
 

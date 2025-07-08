@@ -15,6 +15,7 @@ version = "1"
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet", override = true }
 # access_control = { git = "https://github.com/Reblixt/Sui-Access-Control.git", rev = "testnet" }
 # Kiosk = { git = "https://github.com/MystenLabs/apps.git", subdir = "kiosk", rev = "testnet" }
+Walrus = { git = "https://github.com/MystenLabs/walrus-docs.git", subdir = "contracts/walrus", rev = "main" }
 
 
 [addresses]

@@ -181,7 +181,7 @@ Special thanks to the Mysten Labs team for their pioneering work on the original
 ## Todos
 - [ ] Add Walrus storage options
     - [ ] Research if I could create a transfer policy for Walrus, where a small fee for each transfer is paid towards Walrus storage
-- [ ] Create a transfer policy rule for when to update the image_url when the collection is dynamic.
+- [x] Create a transfer policy rule for when to update the image_url when the collection is dynamic.
 - [ ] Add a calculate rarity score function (getter)
 - [ ] Create more extensive example guides
 - [ ] Add more robust tests
