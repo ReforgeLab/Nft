@@ -652,7 +652,7 @@ module nft::collectible {
             errors::attributeTypeAlreadyExists!(),
         );
 
-        collection.assert_dynamic_attribute_check(&attribute.into_key());
+        collection.assert_attribute_check(&attribute.into_key());
 
         attribute.emit_joined(object::id(collectible));
 
@@ -669,7 +669,7 @@ module nft::collectible {
     ): Attribute<T> {
         assert!(dyn_field::exists_(&collectible.id, key), errors::attributeTypeAlreadyExists!());
 
-        collection.assert_dynamic_attribute_check(&key);
+        collection.assert_attribute_check(&key);
 
         collectible.attributes.remove(&key);
         collectible.equipped.remove(&key);
@@ -685,11 +685,6 @@ module nft::collectible {
     }
 
     fun assert_attribute_check<T: store>(self: &Collection<T>, key: &String) {
-        let _ = self;
-        let _ = key;
-    }
-
-    fun assert_dynamic_attribute_check<T: store>(self: &Collection<T>, key: &String) {
         if (self.attribute_fields.is_empty()) {
             return
         };
