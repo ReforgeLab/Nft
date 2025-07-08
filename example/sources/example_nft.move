@@ -1,7 +1,6 @@
 module example::nft_example {
     use nft::{collectible::{Self, CollectionCap, CollectionTicket, Collection}, registry::Registry};
     use std::{option::{none, some}, string::{Self, String}};
-    use sui::test_utils::destroy;
 
     public struct NFT_EXAMPLE has drop {}
 
@@ -38,12 +37,13 @@ module example::nft_example {
         registry: &Registry,
         ctx: &mut TxContext,
     ) {
-        let (cap, render_cap_opt) = ticket.create_collection(
+        let (cap, render_cap_opt) = ticket.create_collection<Nft<NFT_EXAMPLE>, Nft<NFT_EXAMPLE>>(
             registry,
             b"https://www.banner.com".to_string(),
             vector[b"Background".to_string(), b"Clothing".to_string()],
             some(b"Reblixt is the Creator".to_string()),
             false,
+            true,
             true,
             true,
             ctx,
@@ -52,7 +52,7 @@ module example::nft_example {
         // Destroy the render cap option if it exists
         if (render_cap_opt.is_some()) {
             let render_cap = render_cap_opt.destroy_some();
-            destroy(render_cap);
+            transfer::public_transfer(render_cap, ctx.sender());
         } else {
             option::destroy_none(render_cap_opt);
         };
@@ -62,11 +62,11 @@ module example::nft_example {
 
     #[allow(lint(self_transfer))]
     public fun create_flexible_collection(
-        ticket: CollectionTicket<PixelArtMeta>,
+        ticket: CollectionTicket<Nft<NFT_EXAMPLE>>,
         registry: &Registry,
         ctx: &mut TxContext,
     ) {
-        let (cap, render_cap_opt) = ticket.create_collection(
+        let (cap, render_cap_opt) = ticket.create_collection<Nft<NFT_EXAMPLE>, PixelArtMeta>(
             registry,
             b"https://banner.com/example".to_string(),
             vector[],
@@ -74,12 +74,43 @@ module example::nft_example {
             false,
             true,
             false,
+            false,
             ctx,
         );
 
+
         if (render_cap_opt.is_some()) {
             let render_cap = render_cap_opt.destroy_some();
-            destroy(render_cap);
+            transfer::public_transfer(render_cap, ctx.sender());
+        } else {
+            option::destroy_none(render_cap_opt);
+        };
+
+        transfer::public_transfer(cap, ctx.sender());
+    }
+
+    #[allow(lint(self_transfer))]
+    public fun create_collection_meta_collection(
+        ticket: CollectionTicket<Nft<NFT_EXAMPLE>>,
+        registry: &Registry,
+        ctx: &mut TxContext,
+    ) {
+        let (cap, render_cap_opt) = ticket.create_collection<Nft<NFT_EXAMPLE>, CollectionMeta>(
+            registry,
+            b"https://banner.com/collection".to_string(),
+            vector[b"Rarity".to_string(), b"Tier".to_string()],
+            some(b"Collection Generator".to_string()),
+            false,
+            true,
+            true,
+            false,
+            ctx,
+        );
+
+
+        if (render_cap_opt.is_some()) {
+            let render_cap = render_cap_opt.destroy_some();
+            transfer::public_transfer(render_cap, ctx.sender());
         } else {
             option::destroy_none(render_cap_opt);
         };
@@ -89,7 +120,7 @@ module example::nft_example {
 
     #[allow(lint(self_transfer))]
     public fun mint(
-        collection: &mut Collection<Nft<NFT_EXAMPLE>>,
+        collection: &mut Collection<Nft<NFT_EXAMPLE>, Nft<NFT_EXAMPLE>>,
         cap: &CollectionCap<Nft<NFT_EXAMPLE>>,
         ctx: &mut TxContext,
     ) {
@@ -97,8 +128,8 @@ module example::nft_example {
         let image_url = b"www.image.com".to_string();
         let key = b"Background".to_string();
         let value = b"Red".to_string();
-        // Meta is optional use `some` to pass it or `none` to skip it
-        let meta = Nft<NFT_EXAMPLE> {
+        // Attribute meta is optional use `some` to pass it or `none` to skip it
+        let attribute_meta = Nft<NFT_EXAMPLE> {
             id: object::new(ctx),
             name: b"NFT".to_string(),
             cool: true,
@@ -110,9 +141,16 @@ module example::nft_example {
             some(image_url),
             key,
             value,
-            some(meta),
+            some(attribute_meta),
             ctx,
         );
+
+        // NFT metadata is separate from attribute metadata
+        let nft_meta = Nft<NFT_EXAMPLE> {
+            id: object::new(ctx),
+            name: b"NFT_Meta".to_string(),
+            cool: false,
+        };
 
         let nft = collection.mint(
             cap,
@@ -120,7 +158,7 @@ module example::nft_example {
             b"https://www.image.com".to_string(),
             some(b"Test_description".to_string()),
             some(vector[attribute]),
-            none(),
+            some(nft_meta),
             ctx,
         );
         transfer::public_transfer(nft, ctx.sender())
@@ -128,8 +166,8 @@ module example::nft_example {
 
     #[allow(lint(self_transfer))]
     public fun mint_with_pixel_art_meta(
-        collection: &mut Collection<PixelArtMeta>,
-        cap: &CollectionCap<PixelArtMeta>,
+        collection: &mut Collection<Nft<NFT_EXAMPLE>, PixelArtMeta>,
+        cap: &CollectionCap<Nft<NFT_EXAMPLE>>,
         name: String,
         description: String,
         image_url: String,
@@ -161,8 +199,8 @@ module example::nft_example {
 
     #[allow(lint(self_transfer))]
     public fun mint_with_collection_meta(
-        collection: &mut Collection<CollectionMeta>,
-        cap: &CollectionCap<CollectionMeta>,
+        collection: &mut Collection<Nft<NFT_EXAMPLE>, CollectionMeta>,
+        cap: &CollectionCap<Nft<NFT_EXAMPLE>>,
         name: String,
         image_url: String,
         rarity_tier: String,
@@ -192,8 +230,8 @@ module example::nft_example {
 
     #[allow(lint(self_transfer))]
     public fun mint_simple(
-        collection: &mut Collection<PixelArtMeta>,
-        cap: &CollectionCap<PixelArtMeta>,
+        collection: &mut Collection<Nft<NFT_EXAMPLE>, PixelArtMeta>,
+        cap: &CollectionCap<Nft<NFT_EXAMPLE>>,
         name: String,
         image_url: String,
         ctx: &mut TxContext,
@@ -208,18 +246,6 @@ module example::nft_example {
             ctx,
         );
         transfer::public_transfer(nft, ctx.sender())
-    }
-
-    #[test_only]
-    public fun test_init_pixel_art_collection(ctx: &mut TxContext) {
-        let otw = NFT_EXAMPLE {};
-        collectible::claim_ticket<NFT_EXAMPLE, PixelArtMeta>(otw, none(), ctx);
-    }
-
-    #[test_only]
-    public fun test_init_collection_meta_collection(ctx: &mut TxContext) {
-        let otw = NFT_EXAMPLE {};
-        collectible::claim_ticket<NFT_EXAMPLE, CollectionMeta>(otw, some(10000), ctx);
     }
 
     #[test_only]

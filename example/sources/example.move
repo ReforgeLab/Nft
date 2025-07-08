@@ -1,15 +1,15 @@
 module example::example_nft {
     use std::string::String;
-    use sui::object::UID;
+    use sui::object;
 
     public struct Attribute has key, store {
-        id: UID,
+        id: object::UID,
         key: String,
         value: String,
     }
 
     public struct Nft has key, store {
-        id: UID,
+        id: object::UID,
         image: String,
         name: String,
         description: String,
