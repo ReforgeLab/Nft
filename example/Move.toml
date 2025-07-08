@@ -4,7 +4,7 @@ edition = "2024.beta"
 license = "MIT"        
 authors = [
   "Carl Klöfverskjöld (www.github.com/Reblixt)",
-  "Tanta (www.github.com/tantasui)"
+  "Tanta (www.github.com/tantasui)",
 ]
 
 [dependencies]
