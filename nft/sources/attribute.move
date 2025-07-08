@@ -7,8 +7,8 @@ module nft::attributes {
     public struct Attribute<T> has key, store {
         id: UID,
         image_url: Option<String>,
-        key: String, // Background, Cloth, etc.
-        value: String, // red-sky, jacket, etc.
+        key: String,
+        value: String,
         meta: Option<T>,
         meta_borrowable: bool,
     }
@@ -17,7 +17,6 @@ module nft::attributes {
         attribute_id: ID,
     }
 
-    // ============== Events ==============
     public struct AttributeMinted has copy, drop {
         collection_id: ID,
         attribute_id: ID,
@@ -101,5 +100,43 @@ module nft::attributes {
             collectible_id,
             attribute_id: self.id.to_inner(),
         });
+    }
+
+    public(package) fun new_with_meta<T: store, Meta: store>(
+        image_url: Option<String>,
+        key: String,
+        value: String,
+        collection: ID,
+        meta: Option<T>,
+        separate_meta: Option<Meta>,
+        meta_borrowable: bool,
+        ctx: &mut TxContext,
+    ): (Attribute<T>, Option<Meta>) {
+        let attribute = Attribute<T> {
+            id: object::new(ctx),
+            image_url,
+            key,
+            value,
+            meta,
+            meta_borrowable,
+        };
+        emit(AttributeMinted {
+            collection_id: collection,
+            attribute_id: object::id(&attribute),
+            image_url,
+            key,
+            value,
+        });
+        (attribute, separate_meta)
+    }
+
+    public fun validate_dynamic_attribute(key: &String, value: &String): bool {
+        let _ = key;
+        let _ = value;
+        true
+    }
+
+    public fun get_dynamic_attribute_data<T: store>(attribute: &Attribute<T>): (String, String) {
+        (attribute.key, attribute.value)
     }
 }

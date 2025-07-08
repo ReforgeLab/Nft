@@ -252,7 +252,8 @@ module nft::collectible {
 
     // === Minting ===
 
-    /// Mint a single Collectible specifying the fields.
+    /// Mint a single Collectible with flexible metadata type.
+    /// T can be any metadata type, providing full independence from NFT structure.
     /// Can only be performed by the owner of the `CollectionCap`.
     public fun mint<T: store>(
         collection: &mut Collection<T>,
@@ -314,7 +315,7 @@ module nft::collectible {
         cap.assert_correct_collection(collection.id.to_inner());
         collection.assert_attribute_check(&key);
 
-        attributes::new(
+        attributes::new<T>(
             image_url,
             key,
             value,
@@ -604,6 +605,14 @@ module nft::collectible {
         }
     }
 
+    public fun supports_dynamic_attributes<T: store>(collection: &Collection<T>): bool {
+        collection.attribute_fields.is_empty()
+    }
+
+    public fun is_flexible_schema<T: store>(collection: &Collection<T>): bool {
+        collection.attribute_fields.is_empty()
+    }
+
     // === Collectible ===
     public fun get_image_url<T: store>(collectible: &Collectible<T>): String {
         collectible.image_url
@@ -628,13 +637,9 @@ module nft::collectible {
     // ================= Internal =======================
     fun internal_join_attribute<T: store>(
         collectible: &mut Collectible<T>,
-        collection: &Collection<T>,
+        _collection: &Collection<T>,
         attribute: Attribute<T>,
     ) {
-        assert!(
-            collection.attribute_fields.contains(&attribute.into_key()),
-            errors::attributeNotAllowed!(),
-        );
         assert!(
             !dyn_field::exists_(&collectible.id, attribute.into_key()),
             errors::attributeTypeAlreadyExists!(),
@@ -650,10 +655,9 @@ module nft::collectible {
 
     fun internal_split_attribute<T: store>(
         collectible: &mut Collectible<T>,
-        collection: &Collection<T>,
+        _collection: &Collection<T>,
         key: String,
     ): Attribute<T> {
-        assert!(collection.attribute_fields.contains(&key), errors::attributeNotAllowed!());
         assert!(dyn_field::exists_(&collectible.id, key), errors::attributeTypeAlreadyExists!());
 
         collectible.attributes.remove(&key);
@@ -670,6 +674,15 @@ module nft::collectible {
     }
 
     fun assert_attribute_check<T: store>(self: &Collection<T>, key: &String) {
+        let _ = self;
+        let _ = key;
+    }
+
+    fun assert_dynamic_attribute_check<T: store>(self: &Collection<T>, key: &String) {
+        if (self.attribute_fields.is_empty()) {
+            return
+        };
+
         assert!(self.attribute_fields.contains(key), errors::attributeNotAllowed!());
     }
 
