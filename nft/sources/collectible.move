@@ -9,9 +9,12 @@ module nft::collectible {
         dynamic_object_field as dyn_field,
         event::emit,
         package::{Self, Publisher},
-        transfer_policy::{Self as policy, TransferPolicyCap},
+        transfer_policy::{Self as policy, TransferPolicyCap, TransferPolicy, TransferRequest},
         vec_map::{Self as map, VecMap}
     };
+    use sui::coin::Coin;
+    use sui::sui::SUI;
+    use nft::render_fee_rule;
 
     public struct Meta_borrow {
         collectible_id: ID,
@@ -364,17 +367,21 @@ module nft::collectible {
     public fun update_image<T: store>(
         collectible: &mut Collectible<T>,
         collection: &mut Collection<T>,
+        policy: &mut TransferPolicy<T>,
+        request: &mut TransferRequest<T>,
+        payment: Coin<SUI>,
         attribute_id: ID,
         new_image_url: String,
         render_node: RenderNode,
         _: &mut TxContext,
     ) {
         collection.assert_dynamic();
+        
         let RenderNode { attribute_id: attr_id, nft_id, old_nft_image_url } = render_node;
         assert!(attribute_id == attr_id);
         assert!(nft_id == collectible.id.to_inner());
         assert!(old_nft_image_url == collectible.image_url && new_image_url != old_nft_image_url);
-
+        render_fee_rule::pay(policy, request, payment);
         collectible.image_url = new_image_url;
     }
 
