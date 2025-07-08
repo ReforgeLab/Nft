@@ -103,33 +103,6 @@ module nft::attributes {
         });
     }
 
-    public(package) fun new_with_meta<T: store, Meta: store>(
-        image_url: Option<String>,
-        key: String,
-        value: String,
-        collection: ID,
-        meta: Option<T>,
-        separate_meta: Option<Meta>,
-        meta_borrowable: bool,
-        ctx: &mut TxContext,
-    ): (Attribute<T>, Option<Meta>) {
-        let attribute = Attribute<T> {
-            id: object::new(ctx),
-            image_url,
-            key,
-            value,
-            meta,
-            meta_borrowable,
-        };
-        emit(AttributeMinted {
-            collection_id: collection,
-            attribute_id: object::id(&attribute),
-            image_url,
-            key,
-            value,
-        });
-        (attribute, separate_meta)
-    }
 
     public fun validate_dynamic_attribute(key: &String, value: &String): bool {
         let _ = key;

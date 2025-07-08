@@ -645,7 +645,6 @@ module nft::collectible {
             errors::attributeTypeAlreadyExists!(),
         );
 
-        // Validate attribute is allowed in this collection
         collection.assert_dynamic_attribute_check(&attribute.into_key());
 
         attribute.emit_joined(object::id(collectible));
