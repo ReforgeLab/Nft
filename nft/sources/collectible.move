@@ -637,13 +637,16 @@ module nft::collectible {
     // ================= Internal =======================
     fun internal_join_attribute<T: store>(
         collectible: &mut Collectible<T>,
-        _collection: &Collection<T>,
+        collection: &Collection<T>,
         attribute: Attribute<T>,
     ) {
         assert!(
             !dyn_field::exists_(&collectible.id, attribute.into_key()),
             errors::attributeTypeAlreadyExists!(),
         );
+
+        // Validate attribute is allowed in this collection
+        collection.assert_dynamic_attribute_check(&attribute.into_key());
 
         attribute.emit_joined(object::id(collectible));
 
@@ -655,10 +658,12 @@ module nft::collectible {
 
     fun internal_split_attribute<T: store>(
         collectible: &mut Collectible<T>,
-        _collection: &Collection<T>,
+        collection: &Collection<T>,
         key: String,
     ): Attribute<T> {
         assert!(dyn_field::exists_(&collectible.id, key), errors::attributeTypeAlreadyExists!());
+
+        collection.assert_dynamic_attribute_check(&key);
 
         collectible.attributes.remove(&key);
         collectible.equipped.remove(&key);
