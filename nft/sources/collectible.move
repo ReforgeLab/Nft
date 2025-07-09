@@ -321,20 +321,23 @@ module nft::collectible {
 
         if (!collection.config.strict_schema) {
             if (!collection.attribute_fields.contains(&key)) {
-                collection.attribute_fields.insert(key, vector[]);
-            };
-            // Get the current values for this key and add the new value if it doesn't exist
-            let current_values = collection.attribute_fields.get(&key);
-            if (!current_values.contains(&value)) {
-                // Create a new vector with the new value
-                let mut new_values = vector[];
-                let mut i = 0;
-                while (i < current_values.length()) {
-                    new_values.push_back(current_values[i]);
-                    i = i + 1;
+                collection.attribute_fields.insert(key, vector[value]);
+            } else {
+                // Get the current values for this key and add the new value if it doesn't exist
+                let current_values = collection.attribute_fields.get(&key);
+                if (!current_values.contains(&value)) {
+                    // Create a new vector with the existing values plus the new value
+                    let mut new_values = vector[];
+                    let mut i = 0;
+                    while (i < current_values.length()) {
+                        new_values.push_back(current_values[i]);
+                        i = i + 1;
+                    };
+                    new_values.push_back(value);
+                    // Remove the old entry and insert the updated one
+                    collection.attribute_fields.remove(&key);
+                    collection.attribute_fields.insert(key, new_values);
                 };
-                new_values.push_back(value);
-                collection.attribute_fields.insert(key, new_values);
             };
         };
 
