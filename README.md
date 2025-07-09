@@ -276,6 +276,53 @@ Special thanks to the Mysten Labs team for their pioneering work on the original
 - [ ] Create more extensive example guides
 - [ ] Add more robust tests
 - [ ] Refactor codebase for better readability and maintainability
+- [x] **Add NFT marketplace functionality**
+    - [x] **Buy and sell mechanisms**
+    - [x] **Escrow system for secure trading**
+    - [x] **Price management and updates**
+    - [x] **Market statistics and analytics**
+    - [x] **Comprehensive testing**
+    - [x] **Documentation and examples**
+- [ ] **Enhance marketplace features**
+    - [ ] **Advanced filtering and sorting**
+    - [ ] **Auction system**
+    - [ ] **Bulk operations**
+    - [ ] **Price history tracking**
+
+## Complete Usage Example
+
+```move
+// 1. Initialize marketplace
+marketplace::test_init(ctx);
+
+// 2. Create and setup collection
+let (collection, cap) = setup_collection(ticket, registry, ctx);
+
+// 3. Mint NFT
+let nft = mint_nft(collection, cap, ctx);
+
+// 4. List NFT for sale
+marketplace::list_nft(
+    &mut marketplace,
+    &collection,
+    nft,
+    1000, // price in SUI
+    ctx
+);
+
+// 5. Buy NFT
+let payment = coin::mint_for_testing<SUI>(1000, ctx);
+let purchased_nft = marketplace::buy_nft(
+    &mut marketplace,
+    escrow,
+    payment,
+    ctx
+);
+
+// 6. Check marketplace statistics
+let (total_listings, active_listings, volume) = 
+    marketplace::get_marketplace_stats(&marketplace);
+```
 
 ## Longterm Goals
 - Creating a rendering backend server for images that is open for anyone to host.
