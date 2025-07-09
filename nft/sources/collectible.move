@@ -39,7 +39,7 @@ module nft::collectible {
         burnable: bool,
         // If the collection is dynamic and attributes can be equipped or unequipped
         dynamic: bool,
-        //
+        // If true, only predefined attributes from the schema are allowed
         strict_schema: bool,
         // If the meta is borrowable, if true consider the risks of it and its usecase
         meta_borrowable: bool,
