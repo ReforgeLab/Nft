@@ -45,6 +45,9 @@ The collectible standard implements a flexible and extensible framework for NFTs
 - **Custom Metadata**: Support for project-specific metadata types
 - **Attribute Validation**: Verify attribute combinations through hashing
 - **Comprehensive Events**: Full event system for off-chain indexing
+- **Marketplace Integration**: Built-in NFT marketplace with buy/sell functionality
+- **Escrow System**: Secure NFT trading with automatic escrow handling
+- **Price Management**: Dynamic pricing with update capabilities
 
 ## Usage Flow
 
@@ -53,6 +56,9 @@ The collectible standard implements a flexible and extensible framework for NFTs
 3. Create a collection with the ticket using `create_collection<T>`
 4. Mint collectibles and attributes using `mint<T>` and `mint_attribute<T>`
 5. Manage attributes with `join_attribute<T>` and `split_attribute<T>`
+6. **NEW**: List NFTs for sale using `marketplace::list_nft<T>`
+7. **NEW**: Buy NFTs using `marketplace::buy_nft<T>`
+8. **NEW**: Manage listings with `marketplace::delist_nft<T>` and `marketplace::update_price`
 
 ## Core Components
 
@@ -121,6 +127,16 @@ Modular traits that can be attached to collectibles.
 - `validate_attribute<T>`: Verify attribute combinations
 - `revoke_ownership<T>`: Make a collection immutable
 
+### **NEW: Marketplace Functions**
+
+- `marketplace::list_nft<T>`: List an NFT for sale
+- `marketplace::buy_nft<T>`: Purchase an NFT from a listing
+- `marketplace::delist_nft<T>`: Remove an NFT from the marketplace
+- `marketplace::update_price`: Update the price of a listing
+- `marketplace::get_marketplace_stats`: Get marketplace statistics
+- `marketplace::is_nft_listed`: Check if an NFT is listed for sale
+- `marketplace::get_listing_details`: Get details about a specific listing
+
 ## Events
 
 The contract emits comprehensive events for all major operations including:
@@ -130,6 +146,17 @@ The contract emits comprehensive events for all major operations including:
 - Ownership revocation
 - Collectible destruction
 - Metadata edits
+- **NEW**: NFT listing, sales, and delisting
+- **NEW**: Price updates
+- **NEW**: Marketplace statistics
+
+### **NEW: Marketplace Events**
+
+- `MarketplaceCreated`: Emitted when a new marketplace is created
+- `NFTListed`: Emitted when an NFT is listed for sale
+- `NFTSold`: Emitted when an NFT is sold
+- `NFTDelisted`: Emitted when an NFT is removed from sale
+- `PriceUpdated`: Emitted when a listing price is updated
 
 ## Attribute System
 
@@ -137,6 +164,69 @@ The attribute system enables dynamic composition of collectible traits. Attribut
 - Must be defined in the collection's allowed fields
 - Can be attached and detached if the collection is dynamic
 - Can be validated using hashing for proof mechanisms
+
+## **NEW: Marketplace System**
+
+The marketplace system provides a complete trading infrastructure for NFTs:
+
+### Marketplace Structure
+```move
+public struct Marketplace has key {
+    id: UID,
+    listings: Table<ID, Listing>,
+    nft_to_listing: Table<ID, ID>,
+    total_listings: u64,
+    active_listings: u64,
+    total_volume: u64,
+}
+```
+
+### Listing Process
+1. **List NFT**: Owner calls `list_nft<T>` with collection, NFT, and price
+2. **Escrow Creation**: NFT is moved to a secure escrow object
+3. **Event Emission**: `NFTListed` event is emitted for indexing
+4. **Marketplace Update**: Statistics and mappings are updated
+
+### Buying Process
+1. **Payment Verification**: Buyer provides sufficient SUI payment
+2. **Transfer Execution**: Payment goes to seller, NFT goes to buyer
+3. **Event Emission**: `NFTSold` event is emitted
+4. **Cleanup**: Listing and escrow are removed
+
+### Key Features
+- **Secure Escrow**: NFTs are held in escrow until sale or delisting
+- **Price Management**: Sellers can update prices without re-listing
+- **Statistics Tracking**: Total listings, active listings, and volume
+- **Event System**: Complete event coverage for off-chain indexing
+- **Access Control**: Only sellers can delist or update their listings
+
+### Example Usage
+```move
+// List an NFT for sale
+marketplace::list_nft(
+    &mut marketplace,
+    &collection,
+    nft,
+    1000, // price in SUI
+    ctx,
+);
+
+// Buy an NFT
+let purchased_nft = marketplace::buy_nft(
+    &mut marketplace,
+    escrow,
+    payment,
+    ctx,
+);
+
+// Update listing price
+marketplace::update_price(
+    &mut marketplace,
+    listing_id,
+    1500, // new price
+    ctx,
+);
+```
 
 ## Access Control
 

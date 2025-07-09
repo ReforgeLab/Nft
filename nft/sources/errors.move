@@ -24,6 +24,18 @@ module nft::errors {
     const ENotMetaBorrowable: u64 = 11;
     #[test_only]
     const EWrongCollectible: u64 = 12;
+    #[test_only]
+    const EInsufficientPayment: u64 = 100;
+    #[test_only]
+    const EListingNotFound: u64 = 101;
+    #[test_only]
+    const ENotOwner: u64 = 102;
+    #[test_only]
+    const EInvalidPrice: u64 = 103;
+    #[test_only]
+    const EListingAlreadyExists: u64 = 104;
+    #[test_only]
+    const EInvalidMarketplaceFee: u64 = 201;
 
     public(package) macro fun typeNotFromModule(): u64 {
         1
@@ -61,5 +73,23 @@ module nft::errors {
     }
     public(package) macro fun wrongCollectible(): u64 {
         12
+    }
+    public(package) macro fun insufficientPayment(): u64 {
+        100
+    }
+    public(package) macro fun listingNotFound(): u64 {
+        101
+    }
+    public(package) macro fun notOwner(): u64 {
+        102
+    }
+    public(package) macro fun invalidPrice(): u64 {
+        103
+    }
+    public(package) macro fun listingAlreadyExists(): u64 {
+        104
+    }
+    public(package) macro fun invalidMarketplaceFee(): u64 {
+        201
     }
 }
