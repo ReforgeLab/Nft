@@ -33,17 +33,16 @@ The collectible standard implements a flexible and extensible framework for NFTs
 
 - **Registry**: Central access point for system features
 - **Collections**: Containers for related collectibles with configurable properties
-- **Collectibles**: The NFTs themselves with customizable attributes
+- **Collectibles**: The NFTs themselves with flexible metadata and attributes
 - **Attributes**: Modular traits that can be attached to or detached from collectibles
 
 ## Key Features
 
-- **Two-Parameter Generic System**: Complete separation between NFT type (`T`) and metadata type (`meta`)
+- **Flexible Meta-Type System**: Single parameter generic system with flexible metadata fields
 - **Dynamic Attributes**: Join and split attributes from collectibles
-- **Flexible Metadata Architecture**: `Collection<T, meta>` supports any combination of NFT and metadata types
 - **Configurable Schema Validation**: `strict_schema` flag controls attribute validation behavior
-- **Dynamic Attribute Names**: Collections with `strict_schema: false` support any attribute names without pre-registration
-- **Multiple Metadata Types**: Different collections can use different metadata structures (`PixelArtMeta`, `CollectionMeta`, etc.)
+- **Dynamic Attribute Support**: Collections with `strict_schema: false` support any attribute names without pre-registration
+- **Flexible Metadata**: NFT struct includes flexible metadata fields for any use case
 - **Flexible Supply**: Optional maximum supply limits
 - **Transfer Policy Integration**: Built-in marketplace compliance
 - **Standardize Display**: Customizable display objects for collectibles
@@ -54,22 +53,25 @@ The collectible standard implements a flexible and extensible framework for NFTs
 
 1. Initialize a module with a one-time witness
 2. Claim a collection ticket using `claim_ticket<OTW, T>`
-3. Create a collection with the ticket using `create_collection<T, meta>`
-4. Mint collectibles and attributes using `mint<T, meta>` and `mint_attribute<T, meta>`
-5. Manage attributes with `join_attribute<T, meta>` and `split_attribute<T, meta>`
+3. Create a collection with the ticket using `create_collection<T>`
+4. Mint collectibles and attributes using `mint<T>` and `mint_attribute<T>`
+5. Manage attributes with `join_attribute<T>` and `split_attribute<T>`
 
 ### Usage Examples
 
-#### Flexible Schema (Dynamic Attributes)
+#### Dynamic Schema (User-Generated Attributes)
 ```move
 // Create collection with strict_schema = false for complete flexibility
-let (cap, render_cap_opt) = ticket.create_collection<Nft<NFT_EXAMPLE>, PixelArtMeta>(
+let (cap, render_cap_opt) = ticket.create_collection<NFT_EXAMPLE>(
     registry,
     banner_url,
-    vector[], // Empty fields for flexibility
+    map::empty<String, vector<String>>(), // Empty schema for dynamic attributes
     creator,
-    false, true, false, // dynamic, burnable, strict_schema = false
-    true, ctx
+    true,   // dynamic: true
+    false,  // burnable
+    false,  // strict_schema: false - KEY FOR DYNAMIC LAYERS
+    false,  // meta_borrowable
+    ctx
 );
 
 // Mint with any attribute names (no pre-registration needed)
@@ -78,8 +80,18 @@ let nft = collection.mint(
     some(b"My NFT".to_string()),
     image_url,
     some(b"Custom description".to_string()),
-    none(), // No predefined attributes needed
-    some(pixel_art_meta), // Custom metadata type
+    map::empty<String, String>(), // No predefined attributes needed
+    some(meta), // Custom metadata
+    ctx
+);
+
+// Create dynamic attributes on-the-fly
+let attribute = collection.mint_attribute(
+    cap,
+    some(attribute_image_url),
+    b"Dragon Wings".to_string(), // Any attribute name
+    b"Fire Dragon Wings".to_string(),
+    some(attribute_meta),
     ctx
 );
 ```
@@ -87,21 +99,28 @@ let nft = collection.mint(
 #### Strict Schema (Predefined Attributes)
 ```move
 // Create collection with strict_schema = true for predefined attributes
-let (cap, render_cap_opt) = ticket.create_collection<Nft<NFT_EXAMPLE>, Nft<NFT_EXAMPLE>>(
+let mut schema = map::empty<String, vector<String>>();
+schema.insert(b"Background".to_string(), vector[b"Red Sky".to_string(), b"Blue Ocean".to_string()]);
+schema.insert(b"Clothing".to_string(), vector[b"Jacket".to_string(), b"T-Shirt".to_string()]);
+
+let (cap, render_cap_opt) = ticket.create_collection<NFT_EXAMPLE>(
     registry,
     banner_url,
-    vector[b"Hat".to_string(), b"Background".to_string()], // Predefined attributes
+    schema, // Predefined attribute schema
     creator,
-    false, true, true, // dynamic, burnable, strict_schema = true
-    true, ctx
+    true,   // dynamic: true
+    false,  // burnable
+    true,   // strict_schema: true - ENFORCES SCHEMA
+    false,  // meta_borrowable
+    ctx
 );
 
 // Mint with predefined attribute names only
 let attribute = collection.mint_attribute(
     cap,
     some(image_url),
-    b"Hat".to_string(), // Must match predefined fields
-    b"Cowboy Hat".to_string(),
+    b"Background".to_string(), // Must match predefined fields
+    b"Red Sky".to_string(),    // Must match predefined values
     some(attribute_meta),
     ctx
 );
@@ -123,30 +142,32 @@ The central registry that provides access to system features.
 ### Collection
 
 ```move
-public struct Collection<T: store, meta: store> has key, store {
+public struct Collection<T: store> has key, store {
     id: UID,
     // Contains references to Publisher, Display objects, and TransferPolicyCap
     // Configuration for attributes, supply limits, strict_schema flag, etc.
+    attribute_fields: VecMap<String, vector<String>>,
+    config: Config,
 }
 ```
 
-Container for collectibles with configurable properties. Uses two-parameter generics where `T` is the NFT type and `meta` is the metadata type.
+Container for collectibles with configurable properties. Uses single-parameter generics where `T` is the NFT type with flexible metadata.
 
 ### Collectible
 
 ```move
-public struct Collectible<T: store, meta: store> has key, store {
+public struct Collectible<T: store> has key, store {
     id: UID,
     image_url: String,
     name: String,
     description: String,
     equipped: VecMap<String, ID>,
     attributes: VecMap<String, String>,
-    meta: Option<meta>,
+    meta: Option<T>,
 }
 ```
 
-The NFT objects that can have modular attributes attached. Complete separation between NFT type (`T`) and metadata type (`meta`).
+The NFT objects that can have modular attributes attached. The `meta` field is flexible and can hold any metadata type.
 
 ### Attribute
 
@@ -166,13 +187,13 @@ Modular traits that can be attached to collectibles.
 ## Key Functions
 
 - `claim_ticket<OTW, T>`: Get a collection creation ticket
-- `create_collection<T, meta>`: Create a new collection with configurable schema validation
-- `mint<T, meta>`: Mint a new collectible with independent metadata type
-- `mint_attribute<T, meta>`: Create a new attribute
-- `join_attribute<T, meta>`: Attach an attribute to a collectible
-- `split_attribute<T, meta>`: Remove an attribute from a collectible
-- `validate_attribute<T, meta>`: Verify attribute combinations
-- `revoke_ownership<T, meta>`: Make a collection immutable
+- `create_collection<T>`: Create a new collection with configurable schema validation
+- `mint<T>`: Mint a new collectible with flexible metadata
+- `mint_attribute<T>`: Create a new attribute
+- `join_attribute<T>`: Attach an attribute to a collectible
+- `split_attribute<T>`: Remove an attribute from a collectible
+- `validate_attribute<T>`: Verify attribute combinations
+- `revoke_ownership<T>`: Make a collection immutable
 
 ## Events
 
@@ -184,32 +205,34 @@ The contract emits comprehensive events for all major operations including:
 - Collectible destruction
 - Metadata edits
 
-## Flexible Metadata & Attribute System
+## Flexible Meta-Type System
 
-The framework uses a two-parameter generic system with configurable schema validation:
+The framework uses a single-parameter generic system with flexible metadata and configurable schema validation:
 
-### Two-Parameter Generic System
+### Single-Parameter Generic System
 
-**Complete Type Separation**: `Collection<T, meta>` and `Collectible<T, meta>`
-- `T`: NFT type (can be any struct implementing `store`)
-- `meta`: Metadata type (completely independent from T)
-- Enables same NFT type with different metadata approaches
+**Flexible NFT Structure**: `Collection<T>` and `Collectible<T>`
+- `T`: NFT type with flexible metadata fields
+- Simplified API compared to two-parameter systems
+- NFT struct itself is flexible to hold any metadata
+- Better composability and easier integration
 
 ### Schema Validation Control
 
 **Strict Schema** (`strict_schema: true`): Collections with predefined `attribute_fields`
 - Attributes must be defined in the collection's allowed fields
+- Values must match predefined options in the schema
 - Enforces consistent attribute names across the collection
 - Indexer-friendly with predictable schemas
 
-**Flexible Schema** (`strict_schema: false`): Dynamic attribute support
+**Dynamic Schema** (`strict_schema: false`): Complete attribute flexibility
 - Supports any attribute names without pre-registration
 - Perfect for user-generated content (e.g., "Dragon Wings", "Fire Sword")
-- Ideal for pixel art editors and creative platforms
+- Enables dynamic trait systems
 
-### Metadata Architecture
+### Flexible Metadata Architecture
 
-The two-parameter generic system enables flexible metadata combinations:
+The single-parameter system with flexible metadata enables various use cases:
 
 ```move
 // Traditional NFT metadata
@@ -237,9 +260,9 @@ public struct CollectionMeta has store, drop {
 }
 
 // Example usage patterns:
-Collection<Nft<NFT_EXAMPLE>, PixelArtMeta>     // Pixel art with custom metadata
-Collection<Nft<NFT_EXAMPLE>, CollectionMeta>   // Generated collections with rarity
-Collection<Nft<NFT_EXAMPLE>, Nft<NFT_EXAMPLE>> // Traditional approach
+Collection<Nft<NFT_EXAMPLE>>     // Traditional approach
+Collection<PixelArtMeta>         // Pixel art with custom metadata
+Collection<CollectionMeta>       // Generated collections with rarity
 ```
 
 ### Dynamic Attribute Features
@@ -249,10 +272,40 @@ Attributes can be:
 - Created with custom metadata types
 - Validated using hashing for proof mechanisms
 - Named dynamically in flexible schema collections
+- Organized in a `VecMap<String, vector<String>>` structure for better indexer compatibility
+
+## Frontend Integration Examples
+
+### Dynamic Layer Creation
+```typescript
+// Create a new layer attribute dynamically
+const createLayerAttribute = async (layerName: string, layerValue: string, imageUrl?: string) => {
+  const tx = await suiClient.moveCall({
+    target: `${packageId}::collectible::mint_attribute`,
+    arguments: [
+      collection,
+      collectionCap,
+      imageUrl || null,
+      layerName,    // e.g., "Background", "Clothing", "Accessory"
+      layerValue,   // e.g., "Red Sky", "Blue Jacket", "Gold Chain"
+      null,         // meta
+      false         // meta_borrowable
+    ]
+  });
+};
+
+// Equip a layer to an NFT
+const equipLayer = async (nftId: string, attributeId: string) => {
+  const tx = await suiClient.moveCall({
+    target: `${packageId}::collectible::join_attribute`,
+    arguments: [collection, collectionCap, nftId, attributeId]
+  });
+};
+```
 
 ## Access Control
 
-The `CollectionCap<T>` provides ownership privileges for collection management, and can be revoked to make a collection immutable. Note that the capability is tied to the NFT type `T`, not the metadata type, ensuring proper access control across different metadata implementations.
+The `CollectionCap<T>` provides ownership privileges for collection management, and can be revoked to make a collection immutable. The capability is tied to the NFT type `T`, ensuring proper access control.
 
 ## ❤️ Support & Appreciation
 

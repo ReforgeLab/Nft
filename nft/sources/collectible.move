@@ -45,16 +45,16 @@ module nft::collectible {
         meta_borrowable: bool,
     }
 
-    public struct Collection<T: store, meta: store> has key, store {
+    public struct Collection<T: store> has key, store {
         id: UID,
         // Stored objects
         publisher: Referent<Publisher>,
-        display_collectible: Referent<Display<Collectible<T, meta>>>,
+        display_collectible: Referent<Display<Collectible<T>>>,
         display_attribute: Referent<Display<Attribute<T>>>,
-        policy_cap_collectible: Referent<TransferPolicyCap<Collectible<T, meta>>>,
+        policy_cap_collectible: Referent<TransferPolicyCap<Collectible<T>>>,
         policy_cap_attribute: Referent<TransferPolicyCap<Attribute<T>>>,
         // Data fields
-        attribute_fields: vector<String>,
+        attribute_fields: VecMap<String, vector<String>>,
         banner_url: String,
         creator: Option<String>,
         config: Config,
@@ -76,14 +76,14 @@ module nft::collectible {
         max_supply: Option<u32>,
     }
 
-    public struct Collectible<phantom T: store, meta: store> has key, store {
+    public struct Collectible<T: store> has key, store {
         id: UID,
         image_url: String,
         name: String,
         description: String,
         equipped: VecMap<String, ID>,
         attributes: VecMap<String, String>,
-        meta: Option<meta>,
+        meta: Option<T>,
     }
 
     // ===================== Events =====================
@@ -164,11 +164,11 @@ module nft::collectible {
     }
 
     #[allow(lint(share_owned))]
-    public fun create_collection<T: store, meta: store>(
+    public fun create_collection<T: store>(
         ticket: CollectionTicket<T>,
         registry: &Registry,
         banner_url: String,
-        fields: vector<String>,
+        fields: VecMap<String, vector<String>>,
         creator: Option<String>,
         dynamic: bool,
         burnable: bool,
@@ -179,12 +179,12 @@ module nft::collectible {
         let CollectionTicket { id, publisher, max_supply } = ticket;
         object::delete(id);
 
-        let mut display_collectible = display::new<Collectible<T, meta>>(
+        let mut display_collectible = display::new<Collectible<T>>(
             registry.borrow_publisher(),
             ctx,
         );
         let display_attribute = display::new<Attribute<T>>(registry.borrow_publisher(), ctx);
-        let (policy_collectible, policy_cap_collectible) = policy::new<Collectible<T, meta>>(
+        let (policy_collectible, policy_cap_collectible) = policy::new<Collectible<T>>(
             registry.borrow_publisher(),
             ctx,
         );
@@ -195,7 +195,7 @@ module nft::collectible {
 
         let collection_uid = object::new(ctx);
         let collection_id = collection_uid.to_inner();
-        setup_collectible_display<T, meta>(&mut display_collectible, collection_id);
+        setup_collectible_display<T>(&mut display_collectible, collection_id);
 
         transfer::public_share_object(policy_collectible);
         transfer::public_share_object(policy_attribute);
@@ -211,7 +211,7 @@ module nft::collectible {
             meta_borrowable,
         };
 
-        let collection = Collection<T, meta> {
+        let collection = Collection<T> {
             id: collection_uid,
             display_collectible: borrow::new(display_collectible, ctx),
             display_attribute: borrow::new(display_attribute, ctx),
@@ -234,7 +234,7 @@ module nft::collectible {
             collection_cap_id: object::id(&cap),
             max_supply,
             creator: ctx.sender(),
-            attributes_fields: fields,
+            attributes_fields: vector[],
             banner_url,
             dynamic,
             burnable,
@@ -257,16 +257,16 @@ module nft::collectible {
 
     /// Mint a single Collectible specifying the fields.
     /// Can only be performed by the owner of the `CollectionCap`.
-    public fun mint<T: store, meta: store>(
-        collection: &mut Collection<T, meta>,
+    public fun mint<T: store>(
+        collection: &mut Collection<T>,
         cap: &CollectionCap<T>,
         name: Option<String>,
         image_url: String,
         description: Option<String>,
         attribute_items: Option<vector<Attribute<T>>>,
-        meta: Option<meta>,
+        meta: Option<T>,
         ctx: &mut TxContext,
-    ): Collectible<T, meta> {
+    ): Collectible<T> {
         cap.assert_correct_collection(collection.id.to_inner());
         assert!(
             option::is_none(&collection.config.max_supply) || *option::borrow(&collection.config.max_supply) > collection.config.minted,
@@ -288,7 +288,7 @@ module nft::collectible {
         if (attribute_items.is_some()) {
             let att_items: vector<Attribute<T>> = attribute_items.destroy_some();
             att_items.do!(
-                |att_item| { item.internal_join_attribute<T, meta>(collection, att_item); },
+                |att_item| { item.internal_join_attribute<T>(collection, att_item); },
             );
         } else {
             option::destroy_none(attribute_items);
@@ -307,8 +307,8 @@ module nft::collectible {
         item
     }
 
-    public fun mint_attribute<T: store, meta: store>(
-        collection: &mut Collection<T, meta>,
+    public fun mint_attribute<T: store>(
+        collection: &mut Collection<T>,
         cap: &CollectionCap<T>,
         image_url: Option<String>,
         key: String,
@@ -318,6 +318,25 @@ module nft::collectible {
     ): Attribute<T> {
         cap.assert_correct_collection(collection.id.to_inner());
         collection.assert_attribute_check(&key);
+
+        if (!collection.config.strict_schema) {
+            if (!collection.attribute_fields.contains(&key)) {
+                collection.attribute_fields.insert(key, vector[]);
+            };
+            // Get the current values for this key and add the new value if it doesn't exist
+            let current_values = collection.attribute_fields.get(&key);
+            if (!current_values.contains(&value)) {
+                // Create a new vector with the new value
+                let mut new_values = vector[];
+                let mut i = 0;
+                while (i < current_values.length()) {
+                    new_values.push_back(current_values[i]);
+                    i = i + 1;
+                };
+                new_values.push_back(value);
+                collection.attribute_fields.insert(key, new_values);
+            };
+        };
 
         attributes::new(
             image_url,
@@ -333,9 +352,9 @@ module nft::collectible {
     // =============== Attribute Functions ============
     // === Validations ===
 
-    public fun join_attribute<T: store, meta: store>(
-        collectible: &mut Collectible<T, meta>,
-        collection: &mut Collection<T, meta>,
+    public fun join_attribute<T: store>(
+        collectible: &mut Collectible<T>,
+        collection: &mut Collection<T>,
         attribute: Attribute<T>,
         _: &mut TxContext,
     ): RenderNode {
@@ -345,18 +364,18 @@ module nft::collectible {
             nft_id: collectible.id.to_inner(),
             old_nft_image_url: collectible.image_url,
         };
-        collectible.internal_join_attribute<T, meta>(collection, attribute);
+        collectible.internal_join_attribute<T>(collection, attribute);
         node
     }
 
-    public fun split_attribute<T: store, meta: store>(
-        collectible: &mut Collectible<T, meta>,
-        collection: &mut Collection<T, meta>,
+    public fun split_attribute<T: store>(
+        collectible: &mut Collectible<T>,
+        collection: &mut Collection<T>,
         key: String,
         _: &mut TxContext,
     ): (RenderNode, Attribute<T>) {
         collection.assert_dynamic();
-        let attribute = collectible.internal_split_attribute<T, meta>(collection, key);
+        let attribute = collectible.internal_split_attribute<T>(collection, key);
         let node = RenderNode {
             attribute_id: object::id(&attribute),
             nft_id: collectible.id.to_inner(),
@@ -365,11 +384,11 @@ module nft::collectible {
         (node, attribute)
     }
 
-    public fun update_image<T: store, meta: store>(
-        collectible: &mut Collectible<T, meta>,
-        collection: &mut Collection<T, meta>,
-        policy: &mut TransferPolicy<Collectible<T, meta>>,
-        request: &mut TransferRequest<Collectible<T, meta>>,
+    public fun update_image<T: store>(
+        collectible: &mut Collectible<T>,
+        collection: &mut Collection<T>,
+        policy: &mut TransferPolicy<Collectible<T>>,
+        request: &mut TransferRequest<Collectible<T>>,
         payment: Coin<SUI>,
         attribute_id: ID,
         new_image_url: String,
@@ -386,13 +405,13 @@ module nft::collectible {
         collectible.image_url = new_image_url;
     }
 
-    public fun create_attribute_hash<T: store, meta: store>(
-        collection: &Collection<T, meta>,
+    public fun create_attribute_hash<T: store>(
+        collection: &Collection<T>,
         keys: vector<String>,
         values: vector<String>,
     ): vector<u8> {
         assert!(&keys.length() == &values.length(), errors::notSameLength!());
-        assert!(collection.attribute_fields.length() != 0, errors::doesNotHaveAttributes!());
+        assert!(!map::is_empty(&collection.attribute_fields), errors::doesNotHaveAttributes!());
         let types = collection.attribute_fields;
         let mut attribute_hash = vector<u8>[];
 
@@ -404,8 +423,8 @@ module nft::collectible {
         sha2_256(attribute_hash)
     }
 
-    public fun validate_attribute<T: key + store, meta: store>(
-        collectible: &Collectible<T, meta>,
+    public fun validate_attribute<T: key + store>(
+        collectible: &Collectible<T>,
         hashed_attribute: vector<u8>,
         keys: vector<String>,
     ): bool {
@@ -420,8 +439,8 @@ module nft::collectible {
     }
 
     // ================ Edit methods ==================
-    public fun edit_banner<T: store, meta: store>(
-        collection: &mut Collection<T, meta>,
+    public fun edit_banner<T: store>(
+        collection: &mut Collection<T>,
         cap: &CollectionCap<T>,
         banner_url: String,
     ) {
@@ -437,55 +456,55 @@ module nft::collectible {
 
     // ================ Borrowing methods ==================
 
-    public fun borrow_mut_policy_cap_collectible<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun borrow_mut_policy_cap_collectible<T: store>(
+        self: &mut Collection<T>,
         _: &CollectionCap<T>,
-    ): (TransferPolicyCap<Collectible<T, meta>>, Borrow) {
+    ): (TransferPolicyCap<Collectible<T>>, Borrow) {
         borrow::borrow(&mut self.policy_cap_collectible)
     }
 
-    public fun return_policy_cap_collectible<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
-        cap: TransferPolicyCap<Collectible<T, meta>>,
+    public fun return_policy_cap_collectible<T: store>(
+        self: &mut Collection<T>,
+        cap: TransferPolicyCap<Collectible<T>>,
         borrow: Borrow,
     ) {
         borrow::put_back(&mut self.policy_cap_collectible, cap, borrow)
     }
 
-    public fun borrow_mut_policy_cap_attribute<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun borrow_mut_policy_cap_attribute<T: store>(
+        self: &mut Collection<T>,
         _: &CollectionCap<T>,
     ): (TransferPolicyCap<Attribute<T>>, Borrow) {
         borrow::borrow(&mut self.policy_cap_attribute)
     }
 
-    public fun return_policy_cap_attribute<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun return_policy_cap_attribute<T: store>(
+        self: &mut Collection<T>,
         cap: TransferPolicyCap<Attribute<T>>,
         borrow: Borrow,
     ) {
         borrow::put_back(&mut self.policy_cap_attribute, cap, borrow)
     }
 
-    public fun borrow_mut_display_collectible<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun borrow_mut_display_collectible<T: store>(
+        self: &mut Collection<T>,
         _: &CollectionCap<T>,
-    ): (Display<Collectible<T, meta>>, Borrow) {
+    ): (Display<Collectible<T>>, Borrow) {
         borrow::borrow(&mut self.display_collectible)
     }
 
     /// Return the `Display` to the `CollectionCap`. Must be called if
     /// the capability was borrowed, or a transaction would fail.
-    public fun return_display_collectible<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
-        display: Display<Collectible<T, meta>>,
+    public fun return_display_collectible<T: store>(
+        self: &mut Collection<T>,
+        display: Display<Collectible<T>>,
         borrow: Borrow,
     ) {
         borrow::put_back(&mut self.display_collectible, display, borrow)
     }
 
-    public fun borrow_mut_display_attribute<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun borrow_mut_display_attribute<T: store>(
+        self: &mut Collection<T>,
         _: &CollectionCap<T>,
     ): (Display<Attribute<T>>, Borrow) {
         borrow::borrow(&mut self.display_attribute)
@@ -493,8 +512,8 @@ module nft::collectible {
 
     /// Return the `Display` to the `CollectionCap`. Must be called if
     /// the capability was borrowed, or a transaction would fail.
-    public fun return_display_attribute<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun return_display_attribute<T: store>(
+        self: &mut Collection<T>,
         display: Display<Attribute<T>>,
         borrow: Borrow,
     ) {
@@ -502,8 +521,8 @@ module nft::collectible {
     }
 
     /// Take the `Publisher` from the `CollectionCap`.
-    public fun borrow_mut_publisher<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun borrow_mut_publisher<T: store>(
+        self: &mut Collection<T>,
         _: &CollectionCap<T>,
     ): (Publisher, Borrow) {
         borrow::borrow(&mut self.publisher)
@@ -511,30 +530,29 @@ module nft::collectible {
 
     /// Return the `Publisher` to the `CollectionCap`. Must be called if
     /// the capability was borrowed, or a transaction would fail.
-    public fun return_publisher<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun return_publisher<T: store>(
+        self: &mut Collection<T>,
         publisher: Publisher,
         borrow: Borrow,
     ) {
         borrow::put_back(&mut self.publisher, publisher, borrow)
     }
 
-    public fun borrow_meta<T: store, meta: store>(collectible: &Collectible<T, meta>): &Option<meta> {
+    public fun borrow_meta<T: store>(collectible: &Collectible<T>): &Option<T> {
         &collectible.meta
     }
 
-    public fun borrow_mut_meta<T: store, meta: store>(
-        collectible: &mut Collectible<T, meta>,
-        collection: &Collection<T, meta>,
-    ): (meta, Meta_borrow) {
-        assert!(collection.is_meta_borrowable(), errors::notMetaBorrowable!());
-        let meta: meta = collectible.meta.extract();
+    public fun borrow_mut_meta<T: store>(
+        collectible: &mut Collectible<T>,
+        collection: &Collection<T>,
+    ): (T, Meta_borrow) {
+        let meta: T = collectible.meta.extract();
         (meta, Meta_borrow { collectible_id: object::id(collectible) })
     }
 
-    public fun return_meta<T: store, meta: store>(
-        collectible: &mut Collectible<T, meta>,
-        meta: meta,
+    public fun return_meta<T: store>(
+        collectible: &mut Collectible<T>,
+        meta: T,
         borrow: Meta_borrow,
     ) {
         let Meta_borrow { collectible_id } = borrow;
@@ -543,12 +561,12 @@ module nft::collectible {
     }
 
     // === Burn ===
-    public fun destroy_collectible<T: store, meta: store>(
-        self: &mut Collection<T, meta>,
+    public fun destroy_collectible<T: store>(
+        self: &mut Collection<T>,
         _: &CollectionCap<T>,
-        collectible: Collectible<T, meta>,
-    ): Option<meta> {
-        let Collectible<T, meta> { id, meta, .. } = collectible;
+        collectible: Collectible<T>,
+    ): Option<T> {
+        let Collectible { id, meta, .. } = collectible;
         emit(DestroyCollectible {
             collection_id: object::id(self),
             collectible_id: id.to_inner(),
@@ -558,7 +576,7 @@ module nft::collectible {
         meta
     }
 
-    public fun revoke_ownership<T: store, meta: store>(cap: CollectionCap<T>, collection: &mut Collection<T, meta>) {
+    public fun revoke_ownership<T: store>(cap: CollectionCap<T>, collection: &mut Collection<T>) {
         let collection_id = object::id(collection);
         cap.assert_correct_collection(collection_id);
 
@@ -573,19 +591,19 @@ module nft::collectible {
 
     // ================= View functions ========================
     // === Collection ===
-    public fun get_max_supply<T: store, meta: store>(collection: &Collection<T, meta>): Option<u32> {
+    public fun get_max_supply<T: store>(collection: &Collection<T>): Option<u32> {
         collection.config.max_supply
     }
 
-    public fun get_minted<T: store, meta: store>(collection: &Collection<T, meta>): u32 {
+    public fun get_minted<T: store>(collection: &Collection<T>): u32 {
         collection.config.minted
     }
 
-    public fun get_banner_url<T: store, meta: store>(collection: &Collection<T, meta>): String {
+    public fun get_banner_url<T: store>(collection: &Collection<T>): String {
         collection.banner_url
     }
 
-    public fun get_attribute_fields<T: store, meta: store>(collection: &Collection<T, meta>): vector<String> {
+    public fun get_attribute_fields<T: store>(collection: &Collection<T>): VecMap<String, vector<String>> {
         collection.attribute_fields
     }
 
@@ -593,19 +611,15 @@ module nft::collectible {
         cap.collection
     }
 
-    public fun get_burned<T: store, meta: store>(collection: &Collection<T, meta>): (bool, u32) {
+    public fun get_burned<T: store>(collection: &Collection<T>): (bool, u32) {
         (collection.config.burnable, collection.config.burned)
     }
 
-    public fun is_dynamic<T: store, meta: store>(collection: &Collection<T, meta>): bool {
+    public fun is_dynamic<T: store>(collection: &Collection<T>): bool {
         collection.config.dynamic
     }
 
-    public fun is_meta_borrowable<T: store, meta: store>(collection: &Collection<T, meta>): bool {
-        collection.config.meta_borrowable
-    }
-
-    public fun get_creator<T: store, meta: store>(collection: &Collection<T, meta>): String {
+    public fun get_creator<T: store>(collection: &Collection<T>): String {
         if (collection.creator.is_some()) {
             *option::borrow(&collection.creator)
         } else {
@@ -614,30 +628,30 @@ module nft::collectible {
     }
 
     // === Collectible ===
-    public fun get_image_url<T: store, meta: store>(collectible: &Collectible<T, meta>): String {
+    public fun get_image_url<T: store>(collectible: &Collectible<T>): String {
         collectible.image_url
     }
 
-    public fun get_name<T: store, meta: store>(collectible: &Collectible<T, meta>): String {
+    public fun get_name<T: store>(collectible: &Collectible<T>): String {
         collectible.name
     }
 
-    public fun get_description<T: store, meta: store>(collectible: &Collectible<T, meta>): String {
+    public fun get_description<T: store>(collectible: &Collectible<T>): String {
         collectible.description
     }
 
-    public fun get_attribute_map<T: store, meta: store>(collectible: &Collectible<T, meta>): VecMap<String, String> {
+    public fun get_attribute_map<T: store>(collectible: &Collectible<T>): VecMap<String, String> {
         collectible.attributes
     }
 
-    public fun get_equipped_map<T: store, meta: store>(collectible: &Collectible<T, meta>): VecMap<String, ID> {
+    public fun get_equipped_map<T: store>(collectible: &Collectible<T>): VecMap<String, ID> {
         collectible.equipped
     }
 
     // ================= Internal =======================
-    fun internal_join_attribute<T: store, meta: store>(
-        collectible: &mut Collectible<T, meta>,
-        collection: &Collection<T, meta>,
+    fun internal_join_attribute<T: store>(
+        collectible: &mut Collectible<T>,
+        collection: &Collection<T>,
         attribute: Attribute<T>,
     ) {
         assert!(
@@ -655,9 +669,9 @@ module nft::collectible {
         dyn_field::add(&mut collectible.id, attribute.into_key(), attribute);
     }
 
-    fun internal_split_attribute<T: store, meta: store>(
-        collectible: &mut Collectible<T, meta>,
-        collection: &Collection<T, meta>,
+    fun internal_split_attribute<T: store>(
+        collectible: &mut Collectible<T>,
+        collection: &Collection<T>,
         key: String,
     ): Attribute<T> {
         assert!(dyn_field::exists_(&collectible.id, key), errors::attributeTypeAlreadyExists!());
@@ -673,8 +687,8 @@ module nft::collectible {
         attribute
     }
 
-    fun setup_collectible_display<T: store, meta: store>(
-        display: &mut Display<Collectible<T, meta>>,
+    fun setup_collectible_display<T: store>(
+        display: &mut Display<Collectible<T>>,
         collection_id: ID,
     ) {
         display.add(b"collection_id".to_string(), collection_id.to_address().to_string());
@@ -690,15 +704,16 @@ module nft::collectible {
         assert!(self.collection == id, errors::wrongCollection!());
     }
 
-    fun assert_attribute_check<T: store, meta: store>(self: &Collection<T, meta>, key: &String) {
-        if (!self.config.strict_schema) {
+    fun assert_attribute_check<T: store>(self: &Collection<T>, key: &String) {
+        if (self.config.strict_schema) {
+            // Validate against predefined schema
+            assert!(self.attribute_fields.contains(key), errors::attributeNotAllowed!());
             return
         };
-
-        assert!(self.attribute_fields.contains(key), errors::attributeNotAllowed!());
+        // If not strict schema, allow any attributes (no validation needed)
     }
 
-    fun assert_dynamic<T: store, meta: store>(self: &Collection<T, meta>) {
+    fun assert_dynamic<T: store>(self: &Collection<T>) {
         assert!(self.config.dynamic, errors::notDynamic!());
     }
 }
