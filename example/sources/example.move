@@ -2,13 +2,13 @@ module example::example_nft {
     use std::string::String;
 
     public struct Attribute has key, store {
-        id: object::UID,
+        id: UID,
         key: String,
         value: String,
     }
 
     public struct Nft has key, store {
-        id: object::UID,
+        id: UID,
         image: String,
         name: String,
         description: String,
