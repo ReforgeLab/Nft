@@ -9,7 +9,7 @@ module nft::collectible_test {
     use sui::{
         test_scenario::{Self as scenario, Scenario},
         test_utils::{destroy, assert_eq},
-        vec_map::VecMap
+        vec_map::{Self as map, VecMap}
     };
 
     const Alice: address = @0x1abc;
@@ -46,7 +46,7 @@ module nft::collectible_test {
     #[test]
     fun test_collection_getter_functions() {
         let (scen, registry, coll_cap) = setup(false);
-        let collection = scen.take_shared<Collection<Meta, Meta>>();
+        let collection = scen.take_shared<Collection<Meta>>();
 
         let (burnable, burned_amount) = collection.get_burned();
         // bools and numbers
@@ -58,15 +58,14 @@ module nft::collectible_test {
         // Strings
         assert_eq(collection.get_creator(), b"Alice".to_string());
         assert_eq(collection.get_banner_url(), b"https://example.com/banner".to_string());
-        assert_eq(
-            collection.get_attribute_fields(),
-            vector[
-                b"Background".to_string(),
-                b"Hat".to_string(),
-                b"Shoes".to_string(),
-                b"Jacket".to_string(),
-            ],
-        );
+        
+        // Test the new VecMap schema structure
+        let attribute_fields = collection.get_attribute_fields();
+        assert_eq(attribute_fields.contains(&b"Background".to_string()), true);
+        assert_eq(attribute_fields.contains(&b"Hat".to_string()), true);
+        assert_eq(attribute_fields.contains(&b"Shoes".to_string()), true);
+        assert_eq(attribute_fields.contains(&b"Jacket".to_string()), true);
+        
         // Id
         assert_eq(coll_cap.get_collection_id_by_cap(), object::id(&collection));
 
@@ -80,7 +79,7 @@ module nft::collectible_test {
     fun test_create_attribute() {
         let (mut scen, registry, coll_cap) = setup(false);
 
-        let mut collection = scen.take_shared<Collection<Meta, Meta>>();
+        let mut collection = scen.take_shared<Collection<Meta>>();
         let attribute = setup_attribute(&mut scen, &mut collection, &coll_cap);
         let image_url = attribute.get_attribute_image_url();
         let (key, value) = attribute.get_attribute_data();
@@ -99,7 +98,7 @@ module nft::collectible_test {
     #[test]
     fun test_create_collectible() {
         let (mut scen, registry, coll_cap) = setup(false);
-        let mut collection = scen.take_shared<Collection<Meta, Meta>>();
+        let mut collection = scen.take_shared<Collection<Meta>>();
 
         let attribute = setup_attribute(&mut scen, &mut collection, &coll_cap);
         // std::debug::print(&attribute);
@@ -141,7 +140,7 @@ module nft::collectible_test {
     #[test]
     fun test_nft_with_mutiple_attributes() {
         let (mut scen, registry, coll_cap) = setup(false);
-        let mut collection = scen.take_shared<Collection<Meta, Meta>>();
+        let mut collection = scen.take_shared<Collection<Meta>>();
 
         let attributes = setup_multiple_attributes(&mut scen, &mut collection, &coll_cap);
 
@@ -179,7 +178,7 @@ module nft::collectible_test {
     #[test]
     fun test_swap_attribute() {
         let (mut scen, registry, coll_cap) = setup(true);
-        let mut collection = scen.take_shared<Collection<Meta, Meta>>();
+        let mut collection = scen.take_shared<Collection<Meta>>();
 
         let attributes = setup_multiple_attributes(&mut scen, &mut collection, &coll_cap);
 
@@ -241,14 +240,15 @@ module nft::collectible_test {
         ticket: CollectionTicket<Meta>,
     ): CollectionCap<Meta> {
         let banner_url = b"https://example.com/banner".to_string();
-        let fields = vector[
-            b"Background".to_string(),
-            b"Hat".to_string(),
-            b"Shoes".to_string(),
-            b"Jacket".to_string(),
-        ];
+        
+        // Create the new VecMap schema structure
+        let mut fields = map::empty<String, vector<String>>();
+        fields.insert(b"Background".to_string(), vector[b"red".to_string(), b"blue".to_string()]);
+        fields.insert(b"Hat".to_string(), vector[b"cowboy".to_string(), b"baseball".to_string()]);
+        fields.insert(b"Shoes".to_string(), vector[b"sneakers".to_string(), b"boots".to_string()]);
+        fields.insert(b"Jacket".to_string(), vector[b"leather".to_string(), b"denim".to_string()]);
 
-        let (coll_cap, render_cap_opt) = ticket.create_collection<Meta, Meta>(
+        let (coll_cap, render_cap_opt) = ticket.create_collection<Meta>(
             registry,
             banner_url,
             fields,
@@ -271,10 +271,10 @@ module nft::collectible_test {
 
     fun setup_static_collectible(
         scenario: &mut Scenario,
-        collection: &mut Collection<Meta, Meta>,
+        collection: &mut Collection<Meta>,
         attribute: Option<vector<Attribute<Meta>>>,
         cap: &CollectionCap<Meta>,
-    ): Collectible<Meta, Meta> {
+    ): Collectible<Meta> {
         let name = b"Name".to_string();
         let description = b"Description".to_string();
         let image_url = b"https://example.com/image".to_string();
@@ -295,7 +295,7 @@ module nft::collectible_test {
 
     fun setup_attribute(
         scenario: &mut Scenario,
-        collection: &mut Collection<Meta, Meta>,
+        collection: &mut Collection<Meta>,
         cap: &CollectionCap<Meta>,
     ): Attribute<Meta> {
         let image_url: Option<String> = option::none();
@@ -316,7 +316,7 @@ module nft::collectible_test {
 
     fun setup_multiple_attributes(
         scenario: &mut Scenario,
-        collection: &mut Collection<Meta, Meta>,
+        collection: &mut Collection<Meta>,
         cap: &CollectionCap<Meta>,
     ): vector<Attribute<Meta>> {
         let keys = vector[b"Background".to_string(), b"Hat".to_string(), b"Jacket".to_string()];
