@@ -102,4 +102,5 @@ module nft::attributes {
             attribute_id: self.id.to_inner(),
         });
     }
+
 }

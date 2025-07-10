@@ -4,6 +4,7 @@ edition = "2024.beta"
 license = "MIT"
 authors = [
   "Carl Klöfverskjöld (www.github.com/Reblixt)",
+  "MemeInu (www.github.com/DevZenPro)",
   "Tanta (www.github.com/tantasui)",
 ]
 version = "1"
