@@ -9,6 +9,8 @@ module nft::attributes {
         image_url: Option<String>,
         key: String, // Background, Cloth, etc.
         value: String, // red-sky, jacket, etc.
+        // NOTE: This is for the unique attributes like one of one NFTS
+        override_score: Option<u8>,
         meta: Option<T>,
         meta_borrowable: bool,
     }
@@ -22,6 +24,7 @@ module nft::attributes {
         collection_id: ID,
         attribute_id: ID,
         image_url: Option<String>,
+        override_score: Option<u8>,
         key: String,
         value: String,
     }
@@ -46,6 +49,7 @@ module nft::attributes {
         self.meta.fill(meta);
     }
 
+    // NOTE: Added the override_score
     public(package) fun new<T: store>(
         image_url: Option<String>,
         key: String,
@@ -53,6 +57,7 @@ module nft::attributes {
         collection: ID,
         meta: Option<T>,
         meta_borrowable: bool,
+        override_score: Option<u8>,
         ctx: &mut TxContext,
     ): Attribute<T> {
         let attribute = Attribute<T> {
@@ -61,12 +66,14 @@ module nft::attributes {
             key,
             value,
             meta,
+            override_score,
             meta_borrowable,
         };
         emit(AttributeMinted {
             collection_id: collection,
             attribute_id: object::id(&attribute),
             image_url,
+            override_score,
             key,
             value,
         });
@@ -102,5 +109,4 @@ module nft::attributes {
             attribute_id: self.id.to_inner(),
         });
     }
-
 }

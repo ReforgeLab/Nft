@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
 
 module nft::collectible {
-    use nft::{attributes::{Self, Attribute}, errors, registry::Registry};
+    use nft::{attributes::{Self, Attribute}, errors, registry::Registry, render_fee_rule};
     use std::{hash::sha2_256, string::{Self, String}};
     use sui::{
         borrow::{Self, Referent, Borrow},
+        coin::{Self, Coin},
         display::{Self, Display},
         dynamic_object_field as dyn_field,
         event::emit,
         package::{Self, Publisher},
+        sui::SUI,
         transfer_policy::{Self as policy, TransferPolicyCap, TransferPolicy, TransferRequest},
         vec_map::{Self as map, VecMap}
     };
-    use sui::coin::{Self, Coin};
-    use sui::sui::SUI;
-    use nft::render_fee_rule;
 
     public struct Meta_borrow {
         collectible_id: ID,
@@ -84,6 +83,23 @@ module nft::collectible {
         equipped: VecMap<String, ID>,
         attributes: VecMap<String, String>,
         meta: Option<T>,
+    }
+
+    public struct RarityScoreTracker<phantom T: store> has key, store {
+        id: UID,
+        // This object will either be shared or attached to the Collection object.
+        // Benefits if we attach it to the Collection object is we get one less function argument to pass in.
+        // Cons 'might' be more gas expensive to use.
+        //Where we utilize the Dynamic Field if possible.
+        // If we must use Dynamic object field we do that.
+        // Reason behind this is because Dynamic Field is cheeper to use than Dynamic Object Field
+        // We might need to store some data in the RarityScoreTracker it self. Maby som flags or Lists that links to the dynamic fields.
+    }
+
+    public struct ScoreWrapper has drop {
+        score: u8,
+        timestamp: u64,
+        collectible_id: ID,
     }
 
     // ===================== Events =====================
@@ -287,9 +303,7 @@ module nft::collectible {
 
         if (attribute_items.is_some()) {
             let att_items: vector<Attribute<T>> = attribute_items.destroy_some();
-            att_items.do!(
-                |att_item| { item.internal_join_attribute<T>(collection, att_item); },
-            );
+            att_items.do!(|att_item| { item.internal_join_attribute<T>(collection, att_item); });
         } else {
             option::destroy_none(attribute_items);
         };
@@ -361,6 +375,7 @@ module nft::collectible {
         attribute: Attribute<T>,
         _: &mut TxContext,
     ): RenderNode {
+        //TODO: add the logic to check the nfts acumilated rarity score and store it. as a dynamic field
         collection.assert_dynamic();
         let node = RenderNode {
             attribute_id: object::id(&attribute),
@@ -377,6 +392,7 @@ module nft::collectible {
         key: String,
         _: &mut TxContext,
     ): (RenderNode, Attribute<T>) {
+        //TODO: add the logic to check the nfts acumilated rarity score and store it. as a dynamic field
         collection.assert_dynamic();
         let attribute = collectible.internal_split_attribute<T>(collection, key);
         let node = RenderNode {
@@ -399,7 +415,7 @@ module nft::collectible {
         _: &mut TxContext,
     ) {
         collection.assert_dynamic();
-        
+
         let RenderNode { attribute_id: attr_id, nft_id, old_nft_image_url } = render_node;
         assert!(attribute_id == attr_id);
         assert!(nft_id == collectible.id.to_inner());
@@ -594,6 +610,47 @@ module nft::collectible {
 
     // ================= View functions ========================
     // === Collection ===
+
+    public fun get_rarity_score<T: store>(collection: &Collection<T>, collectible_id: ID): u32 {
+        //TODO:This function is meant to be calleable by anyone even if the caller does not own the NFT.
+        // This functions role is to return a the NFTS postition of the NFT based on its rarity score.
+        // Example position 132 of 3333
+        // The type should be a list of that score if there is more than one
+        // NFT with the same score (vector<u8>). This might also return a position range of the total minted NFTs.
+        // If the there is multiple NFTs with the exact same score, the oldest will have the rarest position.
+
+        //NOTE: We should not forget the one of one ovverride score
+        let score_wrapper = get_score(collection, collectible_id);
+        get_position(collection, collectible_id, score_wrapper)
+    }
+
+    //TODO:
+    // Might be good to split them, Incase a protocol needs this kind of metrics in their game or Dapp
+    public fun get_score<T: store>(
+        collection: &Collection<T>,
+        collectible_id: ID,
+    ): vector<ScoreWrapper> {
+        let wrapper_array: vector<ScoreWrapper> = vector::empty();
+        let wrapper = ScoreWrapper {
+            score: 4, // 4 in this case is the unique rarity score the NFT has. but it is not the position and how many NFT with the same score
+            timestamp: 0, // Timestamp of when the this Score was created from the Join/split functions
+            collectible_id,
+        };
+        wrapper_array.push_back(wrapper);
+        wrapper_array
+    }
+
+    //TODO:
+    // This function is will return the position of the NFT based on its rarity score and timestamp compared to other NFTs in the collection.
+    // The ScoreWrapper hos the drop ability
+    public fun get_position<T: store>(
+        collection: &Collection<T>,
+        collectible_id: ID,
+        rarity_score: vector<ScoreWrapper>,
+    ): u32 {
+        3333 // 3333 is a place holder and the absolute least rarest position where 1 is the most rarest position.
+    }
+
     public fun get_max_supply<T: store>(collection: &Collection<T>): Option<u32> {
         collection.config.max_supply
     }
@@ -606,7 +663,9 @@ module nft::collectible {
         collection.banner_url
     }
 
-    public fun get_attribute_fields<T: store>(collection: &Collection<T>): VecMap<String, vector<String>> {
+    public fun get_attribute_fields<T: store>(
+        collection: &Collection<T>,
+    ): VecMap<String, vector<String>> {
         collection.attribute_fields
     }
 
