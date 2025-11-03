@@ -7,14 +7,14 @@ use nft::{
     registry::Registry,
     render::{Self, RenderCap}
 };
-use std::string::String;
+use std::{hash::sha2_256, string::{Self, String}};
 use sui::{
     borrow::{Self, Referent, Borrow},
     display::{Self, Display},
     event::emit,
     package::{Self, Publisher},
     transfer_policy::{Self as policy, TransferPolicyCap},
-    vec_map::VecMap
+    vec_map::{Self as map, VecMap}
 };
 
 public struct Config has copy, store {
@@ -83,6 +83,12 @@ public struct CollectionCreated has copy, drop {
 public struct RevokeOwnership has copy, drop {
     collection_id: ID,
     collection_cap_id: ID,
+}
+
+public struct EditMade has copy, drop {
+    item_id: ID,
+    edit_name: String,
+    edit_value: String,
 }
 
 /// Called in the external module initializer. Sends a `CollectionTicket`
@@ -196,7 +202,7 @@ public fun create_collection<T: store>(
     });
     transfer::share_object(collection);
     if (dynamic) {
-        (cap, option::some(render::new(collection_id, object::new(ctx))))
+        (cap, option::some(render::create_cap(collection_id, ctx)))
     } else {
         (cap, option::none())
     }
@@ -215,6 +221,124 @@ public fun revoke_ownership<T: store>(cap: CollectionCap<T>, collection: &mut Co
     id.delete();
 }
 
+public fun create_attribute_hash<T: store>(
+    collection: &Collection<T>,
+    keys: vector<String>,
+    values: vector<String>,
+): vector<u8> {
+    assert!(&keys.length() == &values.length(), errors::notSameLength!());
+    assert!(!map::is_empty(&collection.attribute_fields), errors::doesNotHaveAttributes!());
+    let types = collection.attribute_fields;
+    let mut attribute_hash = vector<u8>[];
+
+    keys.zip_do!(values, |key, value| {
+        assert!(types.contains(&key), errors::attributeNotAllowed!());
+        attribute_hash.append(string::into_bytes(value));
+    });
+
+    sha2_256(attribute_hash)
+}
+
+// ================ Edit methods ==================
+public fun edit_banner<T: store>(
+    collection: &mut Collection<T>,
+    cap: &CollectionCap<T>,
+    banner_url: String,
+) {
+    cap.assert_correct_collection(collection.id.to_inner());
+
+    collection.banner_url = banner_url;
+    emit(EditMade {
+        item_id: object::id(collection),
+        edit_name: string::utf8(b"banner_url"),
+        edit_value: banner_url,
+    });
+}
+
+// ||================ Borrowing methods ==================
+public fun borrow_mut_display_attribute<T: store>(
+    self: &mut Collection<T>,
+    _: &CollectionCap<T>,
+): (Display<Attribute<T>>, Borrow) {
+    borrow::borrow(&mut self.display_attribute)
+}
+
+/// Return the `Display` to the `CollectionCap`. Must be called if
+/// the capability was borrowed, or a transaction would fail.
+public fun return_display_attribute<T: store>(
+    self: &mut Collection<T>,
+    display: Display<Attribute<T>>,
+    borrow: Borrow,
+) {
+    borrow::put_back(&mut self.display_attribute, display, borrow)
+}
+
+/// Take the `Publisher` from the `CollectionCap`.
+public fun borrow_mut_publisher<T: store>(
+    self: &mut Collection<T>,
+    _: &CollectionCap<T>,
+): (Publisher, Borrow) {
+    borrow::borrow(&mut self.publisher)
+}
+
+/// Return the `Publisher` to the `CollectionCap`. Must be called if
+/// the capability was borrowed, or a transaction would fail.
+public fun return_publisher<T: store>(
+    self: &mut Collection<T>,
+    publisher: Publisher,
+    borrow: Borrow,
+) {
+    borrow::put_back(&mut self.publisher, publisher, borrow)
+}
+
+// ================= View functions ========================
+// === Collection ===
+public fun get_max_supply<T: store>(collection: &Collection<T>): Option<u32> {
+    collection.config.max_supply
+}
+
+public fun get_minted<T: store>(collection: &Collection<T>): u32 {
+    collection.config.minted
+}
+
+public fun get_banner_url<T: store>(collection: &Collection<T>): String {
+    collection.banner_url
+}
+
+public fun get_attribute_fields<T: store>(
+    collection: &Collection<T>,
+): VecMap<String, vector<String>> {
+    collection.attribute_fields
+}
+
+public fun get_collection_id_by_cap<T: store>(cap: &CollectionCap<T>): ID {
+    cap.collection
+}
+
+public fun get_burned<T: store>(collection: &Collection<T>): (bool, u32) {
+    (collection.config.burnable, collection.config.burned)
+}
+
+public fun is_dynamic<T: store>(collection: &Collection<T>): bool {
+    collection.config.dynamic
+}
+
+public fun get_creator<T: store>(collection: &Collection<T>): String {
+    if (collection.creator.is_some()) {
+        *option::borrow(&collection.creator)
+    } else {
+        string::utf8(b"")
+    }
+}
+
+public fun is_strict<T: store>(self: &Collection<T>): bool {
+    self.config.strict_schema
+}
+
+public fun is_meta_borrowable<T: store>(self: &Collection<T>): bool {
+    self.config.meta_borrowable
+}
+
 public(package) fun mint_check<T: store>(self: &mut Collection<T>, cap: &CollectionCap<T>) {
     cap.assert_correct_collection(self.id.to_inner());
     assert!(
@@ -224,21 +348,104 @@ public(package) fun mint_check<T: store>(self: &mut Collection<T>, cap: &Collect
     self.config.minted = self.config.minted + 1;
 }
 
-fun assert_correct_collection<T: store>(self: &CollectionCap<T>, id: ID) {
+public(package) fun id<T: store>(self: &Collection<T>): ID {
+    self.id.to_inner()
+}
+
+public(package) fun add_attribute_field<T: store>(
+    self: &mut Collection<T>,
+    key: String,
+    value: String,
+) {
+    if (!self.attribute_fields.contains(&key)) {
+        self.attribute_fields.insert(key, vector[value]);
+    } else {
+        // Get the current values for this key and add the new value if it doesn't exist
+        let current_values = self.attribute_fields.get(&key);
+        if (!current_values.contains(&value)) {
+            // Create a new vector with the existing values plus the new value
+            let mut new_values = vector[];
+            let mut i = 0;
+            while (i < current_values.length()) {
+                new_values.push_back(current_values[i]);
+                i = i + 1;
+            };
+            new_values.push_back(value);
+            // Remove the old entry and insert the updated one
+            self.attribute_fields.remove(&key);
+            self.attribute_fields.insert(key, new_values);
+        };
+    };
+}
+
+public(package) fun assert_correct_collection<T: store>(self: &CollectionCap<T>, id: ID) {
     assert!(self.collection == id, errors::wrongCollection!());
 }
 
-fun assert_attribute_check<T: store>(self: &Collection<T>, key: &String) {
+public(package) fun assert_attribute_check<T: store>(self: &Collection<T>, key: &String) {
     if (self.config.strict_schema) {
-        // Validate against predefined schema
         assert!(self.attribute_fields.contains(key), errors::attributeNotAllowed!());
         return
     };
-    // If not strict schema, allow any attributes (no validation needed)
 }
 
-fun assert_dynamic<T: store>(self: &Collection<T>) {
+public(package) fun assert_dynamic<T: store>(self: &Collection<T>) {
     assert!(self.config.dynamic, errors::notDynamic!());
+}
+
+public(package) fun assert_meta_borrowable<T: store>(self: &Collection<T>) {
+    assert!(self.config.meta_borrowable, errors::metaNotBorrowable!());
+}
+
+public fun borrow_mut_policy_cap_collectible<T: store>(
+    self: &mut Collection<T>,
+    _: &CollectionCap<T>,
+): (TransferPolicyCap<Collectible<T>>, Borrow) {
+    borrow::borrow(&mut self.policy_cap_collectible)
+}
+
+public fun return_policy_cap_collectible<T: store>(
+    self: &mut Collection<T>,
+    cap: TransferPolicyCap<Collectible<T>>,
+    borrow: Borrow,
+) {
+    borrow::put_back(&mut self.policy_cap_collectible, cap, borrow)
+}
+
+public fun borrow_mut_policy_cap_attribute<T: store>(
+    self: &mut Collection<T>,
+    _: &CollectionCap<T>,
+): (TransferPolicyCap<Attribute<T>>, Borrow) {
+    borrow::borrow(&mut self.policy_cap_attribute)
+}
+
+public fun return_policy_cap_attribute<T: store>(
+    self: &mut Collection<T>,
+    cap: TransferPolicyCap<Attribute<T>>,
+    borrow: Borrow,
+) {
+    borrow::put_back(&mut self.policy_cap_attribute, cap, borrow)
+}
+
+public fun borrow_mut_display_collectible<T: store>(
+    self: &mut Collection<T>,
+    _: &CollectionCap<T>,
+): (Display<Collectible<T>>, Borrow) {
+    borrow::borrow(&mut self.display_collectible)
+}
+
+/// Return the `Display` to the `CollectionCap`. Must be called if
+/// the capability was borrowed, or a transaction would fail.
+public fun return_display_collectible<T: store>(
+    self: &mut Collection<T>,
+    display: Display<Collectible<T>>,
+    borrow: Borrow,
+) {
+    borrow::put_back(&mut self.display_collectible, display, borrow)
+}
+
+public(package) fun increment_burn_count<T: store>(self: &mut Collection<T>) {
+    self.config.burned = self.config.burned + 1;
 }
 
 fun setup_collectible_display<T: store>(display: &mut Display<Collectible<T>>, collection_id: ID) {
