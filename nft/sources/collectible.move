@@ -217,8 +217,6 @@ public fun create_collection<T: store>(
         meta_borrowable,
     };
 
-    // dof::
-
     let mut collection = Collection<T> {
         id: collection_uid,
         dof_list: vector[
@@ -259,7 +257,6 @@ public fun create_collection<T: store>(
         object::id(&publisher),
         publisher,
     );
-    // collection.add_to_collection(object::id(&policy_cap_collectible), policy_cap_collectible);
 
     let cap = CollectionCap<T> {
         id: object::new(ctx),
@@ -331,11 +328,6 @@ public fun mint<T: store, Meta: key + store>(
             meta,
         );
     });
-    // dof::add(
-    //     &mut item.id,
-    //     object::id(&meta),
-    //     meta,
-    // );
 
     if (attribute_items.is_some()) {
         let att_items: vector<Attribute<T>> = attribute_items.destroy_some();
@@ -509,6 +501,15 @@ public fun edit_banner<T: store>(
 
 // ================ Borrowing methods ==================
 
+public fun add_collection_meta<T: store, meta: key + store>(
+    self: &mut Collection<T>,
+    _cap: &CollectionCap<T>,
+    meta: meta,
+) {
+    self.dof_list.push_back(object::id(&meta));
+    dof::add(&mut self.id, object::id(&meta), meta);
+}
+
 public fun borrow_mut_collection_meta<T: store, meta: key + store>(
     self: &mut Collection<T>,
     meta_id: ID,
@@ -534,119 +535,36 @@ public fun return_collection_meta<T: store, meta: key + store>(
     dof::add(&mut self.id, meta_id, meta);
 }
 
-// public fun dof_list<T: store>(self: &Collection<T>): vector<ID> {
-// }
+public fun remove_collection_meta<T: store, meta: key + store>(
+    self: &mut Collection<T>,
+    meta_id: ID,
+): meta {
+    let (found, index) = self.dof_list.index_of(&meta_id);
+    assert!(found, errors::wrongId!());
+    self.dof_list.remove(index);
+    dof::remove(&mut self.id, meta_id)
+}
 
-// public fun borrow_mut_policy_cap_collectible<T: store, meta: key>(
-//     self: &mut Collection<T>,
-//     _: &CollectionCap<T>,
-// ): (TransferPolicyCap<Collectible<T>>, Borrow) {
-//     // borrow::borrow(&mut self.policy_cap_collectible)
-// }
+// === Collectible Meta ===
 
-// public fun return_policy_cap_collectible<T: store>(
-//     self: &mut Collection<T>,
-//     cap: TransferPolicyCap<Collectible<T>>,
-//     borrow: Borrow,
-// ) {
-//     borrow::put_back(&mut self.policy_cap_collectible, cap, borrow)
-// }
-//
-// public fun borrow_mut_policy_cap_attribute<T: store, AttributeMeta: store>(
-//     self: &mut Collection<T>,
-//     _: &CollectionCap<T>,
-// ): (TransferPolicyCap<Attribute<T, AttributeMeta>>, Borrow) {
-//     borrow::borrow(&mut self.policy_cap_attribute)
-// }
-//
-// public fun return_policy_cap_attribute<T: store, AttributeMeta: store>(
-//     self: &mut Collection<T>,
-//     cap: TransferPolicyCap<Attribute<T, AttributeMeta>>,
-//     borrow: Borrow,
-// ) {
-//     borrow::put_back(&mut self.policy_cap_attribute, cap, borrow)
-// }
-//
-// public fun borrow_mut_display_collectible<T: store>(
-//     self: &mut Collection<T>,
-//     _: &CollectionCap<T>,
-// ): (Display<Collectible<T>>, Borrow) {
-//     borrow::borrow(&mut self.display_collectible)
-// }
-//
-// /// Return the `Display` to the `CollectionCap`. Must be called if
-// /// the capability was borrowed, or a transaction would fail.
-// public fun return_display_collectible<T: store>(
-//     self: &mut Collection<T>,
-//     display: Display<Collectible<T>>,
-//     borrow: Borrow,
-// ) {
-//     borrow::put_back(&mut self.display_collectible, display, borrow)
-// }
-//
-// public fun borrow_mut_display_attribute<T: store, AttributeMeta: store>(
-//     self: &mut Collection<T>,
-//     _: &CollectionCap<T>,
-// ): (Display<Attribute<T, AttributeMeta>>, Borrow) {
-//     borrow::borrow(&mut self.display_attribute)
-// }
-//
-// /// Return the `Display` to the `CollectionCap`. Must be called if
-// /// the capability was borrowed, or a transaction would fail.
-// public fun return_display_attribute<T: store, AttributeMeta: store>(
-//     self: &mut Collection<T>,
-//     display: Display<Attribute<T, AttributeMeta>>,
-//     borrow: Borrow,
-// ) {
-//     borrow::put_back(&mut self.display_attribute, display, borrow)
-// }
-//
-// /// Take the `Publisher` from the `CollectionCap`.
-// public fun borrow_mut_publisher<T: store>(
-//     self: &mut Collection<T>,
-//     _: &CollectionCap<T>,
-// ): (Publisher, Borrow) {
-//     borrow::borrow(&mut self.publisher)
-// }
-//
-// /// Return the `Publisher` to the `CollectionCap`. Must be called if
-// /// the capability was borrowed, or a transaction would fail.
-// public fun return_publisher<T: store>(
-//     self: &mut Collection<T>,
-//     publisher: Publisher,
-//     borrow: Borrow,
-// ) {
-//     borrow::put_back(&mut self.publisher, publisher, borrow)
-// }
-
-// public fun borrow_meta<T: store>(collectible: &Collectible<T>): &Option<T> {
-//     &collectible.meta
-// }
-//
-// public fun borrow_mut_meta<T: store>(collectible: &mut Collectible<T>): (T, MetaBorrow) {
-//     let meta: T = collectible.meta.extract();
-//     (meta, MetaBorrow { collectible_id: object::id(collectible) })
-// }
-//
-// public fun return_meta<T: store>(collectible: &mut Collectible<T>, meta: T, borrow: MetaBorrow) {
-//     let MetaBorrow { collectible_id } = borrow;
-//     assert!(collectible_id == object::id(collectible), errors::wrongCollectible!());
-//     collectible.meta.fill(meta);
-// }
-
-public fun add_meta<T: store, meta: key + store>(collectible: &mut Collectible<T>, meta: meta) {
+public fun add_collectible_meta<T: store, meta: key + store>(
+    collectible: &mut Collectible<T>,
+    _cap: &CollectionCap<T>,
+    meta: meta,
+) {
     collectible.dof_list.push_back(object::id(&meta));
     dof::add(&mut collectible.id, object::id(&meta), meta);
 }
 
-public fun borrow_meta<T: store, meta: key + store>(
+public fun borrow_collectible_meta<T: store, meta: key + store>(
     collectible: &Collectible<T>,
+    _cap: &CollectionCap<T>,
     meta_id: ID,
 ): &meta {
     dof::borrow(&collectible.id, meta_id)
 }
 
-public fun borrow_mut_meta<T: store, meta: key + store>(
+public fun borrow_mut_collectible_meta<T: store, meta: key + store>(
     collectible: &mut Collectible<T>,
     meta_id: ID,
 ): (meta, MetaBorrow) {
@@ -659,7 +577,7 @@ public fun borrow_mut_meta<T: store, meta: key + store>(
     )
 }
 
-public fun return_meta<T: store, meta: key + store>(
+public fun return_collectible_meta<T: store, meta: key + store>(
     collectible: &mut Collectible<T>,
     meta: meta,
     borrow: MetaBorrow,
@@ -670,7 +588,7 @@ public fun return_meta<T: store, meta: key + store>(
     dof::add(&mut collectible.id, object::id(&meta), meta);
 }
 
-public fun remove_meta<T: store, meta: key + store>(
+public fun remove_collectible_meta<T: store, meta: key + store>(
     collectible: &mut Collectible<T>,
     meta_id: ID,
 ): meta {
@@ -713,100 +631,103 @@ public fun revoke_ownership<T: store>(cap: CollectionCap<T>, collection: &mut Co
 
 // ================= View functions ========================
 // === Collection ===
-public fun get_max_supply<T: store>(collection: &Collection<T>): Option<u32> {
-    collection.config.max_supply
+public fun get_max_supply<T: store>(self: &Collection<T>): Option<u32> {
+    self.config.max_supply
 }
 
-public fun get_minted<T: store>(collection: &Collection<T>): u32 {
-    collection.config.minted
+public fun get_minted<T: store>(self: &Collection<T>): u32 {
+    self.config.minted
 }
 
-public fun get_banner_url<T: store>(collection: &Collection<T>): Option<String> {
-    collection.banner_url
+public fun get_banner_url<T: store>(self: &Collection<T>): Option<String> {
+    self.banner_url
 }
 
-public fun get_attribute_fields<T: store>(
-    collection: &Collection<T>,
-): VecMap<String, vector<String>> {
-    collection.attribute_fields
+public fun get_attribute_fields<T: store>(self: &Collection<T>): VecMap<String, vector<String>> {
+    self.attribute_fields
 }
 
-public fun get_collection_id_by_cap<T: store>(cap: &CollectionCap<T>): ID {
-    cap.collection
+public fun get_collection_id_by_cap<T: store>(self: &CollectionCap<T>): ID {
+    self.collection
 }
 
-public fun get_burned<T: store>(collection: &Collection<T>): (bool, u32) {
-    (collection.config.burnable, collection.config.burned)
+public fun get_burned<T: store>(self: &Collection<T>): (bool, u32) {
+    (self.config.burnable, self.config.burned)
 }
 
-public fun is_dynamic<T: store>(collection: &Collection<T>): bool {
-    collection.config.dynamic
+public fun is_dynamic<T: store>(self: &Collection<T>): bool {
+    self.config.dynamic
 }
 
-public fun get_creator<T: store>(collection: &Collection<T>): String {
-    if (collection.creator.is_some()) {
-        *option::borrow(&collection.creator)
+public fun get_creator<T: store>(self: &Collection<T>): String {
+    if (self.creator.is_some()) {
+        *option::borrow(&self.creator)
     } else {
         string::utf8(b"")
     }
 }
 
+public fun get_collection_dof_list<T: store>(self: &Collection<T>): vector<ID> {
+    self.dof_list
+}
+
 // === Collectible ===
-public fun get_image_url<T: store>(collectible: &Collectible<T>): String {
-    collectible.image_url
+public fun get_image_url<T: store>(self: &Collectible<T>): String {
+    self.image_url
 }
 
-public fun get_name<T: store>(collectible: &Collectible<T>): String {
-    collectible.name
+public fun get_name<T: store>(self: &Collectible<T>): String {
+    self.name
 }
 
-public fun get_description<T: store>(collectible: &Collectible<T>): String {
-    collectible.description
+public fun get_description<T: store>(self: &Collectible<T>): String {
+    self.description
 }
 
-public fun get_attribute_map<T: store>(collectible: &Collectible<T>): VecMap<String, String> {
-    collectible.attributes
+public fun get_attribute_map<T: store>(self: &Collectible<T>): VecMap<String, String> {
+    self.attributes
 }
 
-public fun get_equipped_map<T: store>(collectible: &Collectible<T>): VecMap<String, ID> {
-    collectible.equipped
+public fun get_equipped_map<T: store>(self: &Collectible<T>): VecMap<String, ID> {
+    self.equipped
+}
+
+public fun get_collectible_dof_list<T: store>(self: &Collectible<T>): vector<ID> {
+    self.dof_list
 }
 
 // ================= Internal =======================
 fun internal_join_attribute<T: store>(
-    collectible: &mut Collectible<T>,
+    self: &mut Collectible<T>,
     collection: &Collection<T>,
     attribute: Attribute<T>,
 ) {
-    assert!(
-        !dof::exists_(&collectible.id, attribute.into_key()),
-        errors::attributeTypeAlreadyExists!(),
-    );
+    assert!(!dof::exists_(&self.id, attribute.into_key()), errors::attributeTypeAlreadyExists!());
 
     collection.assert_attribute_check(&attribute.into_key());
 
-    attribute.emit_joined(object::id(collectible));
+    attribute.emit_joined(object::id(self));
 
-    collectible.equipped.insert(attribute.into_key(), object::id(&attribute));
-    collectible.attributes.insert(attribute.into_key(), attribute.into_value());
+    self.equipped.insert(attribute.into_key(), object::id(&attribute));
+    self.attributes.insert(attribute.into_key(), attribute.into_value());
 
-    dof::add(&mut collectible.id, attribute.into_key(), attribute);
+    dof::add(&mut self.id, attribute.into_key(), attribute);
 }
 
 fun internal_split_attribute<T: store>(
-    collectible: &mut Collectible<T>,
+    self: &mut Collectible<T>,
     collection: &Collection<T>,
     key: String,
 ): Attribute<T> {
-    assert!(dof::exists_(&collectible.id, key), errors::attributeTypeAlreadyExists!());
+    assert!(dof::exists_(&self.id, key), errors::attributeTypeAlreadyExists!());
 
     collection.assert_attribute_check(&key);
 
-    collectible.attributes.remove(&key);
-    collectible.equipped.remove(&key);
+    self.attributes.remove(&key);
+    self.equipped.remove(&key);
 
-    let attribute: Attribute<T> = dof::remove(&mut collectible.id, key);
-    attribute.emit_split(object::id(collectible));
+    let attribute: Attribute<T> = dof::remove(&mut self.id, key);
+    attribute.emit_split(object::id(self));
 
     attribute
 }
